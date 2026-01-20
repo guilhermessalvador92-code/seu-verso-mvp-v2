@@ -1,35 +1,73 @@
 /**
  * Webhook handler para receber callbacks da Suno API
  * Quando uma música é gerada, a Suno API faz POST para este endpoint
+ * 
+ * Estrutura do callback:
+ * {
+ *   code: 200,
+ *   msg: "All generated successfully.",
+ *   data: {
+ *     callbackType: "complete",
+ *     task_id: "...",
+ *     data: [
+ *       {
+ *         id: "...",
+ *         audio_url: "https://...",
+ *         image_url: "https://...",
+ *         prompt: "...",
+ *         title: "...",
+ *         tags: "...",
+ *         duration: 198.44
+ *       }
+ *     ]
+ *   }
+ * }
  */
 
 import { Request, Response } from "express";
-import { getJobById, updateJobStatus, createSong, getSongByJobId, getLeadByJobId } from "./db";
+import { getJobById, updateJobStatus, createSong, getLeadByJobId } from "./db";
 import { queueMusicReadyEmail } from "./email-queue-integration";
 import { nanoid } from "nanoid";
 
-export interface SunoCallbackPayload {
-  jobId: string;
+/**
+ * Estrutura do callback da Suno API
+ */
+export interface SunoCallbackRequest {
+  code: number;
+  msg: string;
+  data: {
+    callbackType: "complete" | "first" | "text" | "error";
+    task_id: string;
+    data: SunoMusicData[] | null;
+  };
+}
+
+export interface SunoMusicData {
+  id: string;
+  audio_url: string;
+  source_audio_url?: string;
+  stream_audio_url?: string;
+  source_stream_audio_url?: string;
+  image_url: string;
+  source_image_url?: string;
+  prompt: string;
+  model_name: string;
   title: string;
-  lyrics: string;
-  audioUrl: string;
-  imageUrl?: string;
-  videoUrl?: string;
-  duration?: number;
-  tags?: string;
-  prompt?: string;
-  style?: string;
+  tags: string;
+  createTime: string;
+  duration: number;
 }
 
 /**
- * Validar payload do callback
+ * Validar payload do callback da Suno
  */
-function validateCallbackPayload(data: any): data is SunoCallbackPayload {
+function validateSunoCallback(data: any): data is SunoCallbackRequest {
   return (
-    typeof data.jobId === "string" &&
-    typeof data.title === "string" &&
-    typeof data.lyrics === "string" &&
-    typeof data.audioUrl === "string"
+    typeof data.code === "number" &&
+    typeof data.msg === "string" &&
+    data.data &&
+    typeof data.data.callbackType === "string" &&
+    typeof data.data.task_id === "string"
   );
 }
 
@@ -40,152 +78,232 @@ export async function handleSunoCallback(req: Request, res: Response) {
   try {
     console.log("[Webhook] Received Suno callback:", {
       timestamp: new Date().toISOString(),
-      body: req.body,
+      code: req.body?.code,
+      callbackType: req.body?.data?.callbackType,
+      taskId: req.body?.data?.task_id,
     });
 
     // Validar payload
-    if (!validateCallbackPayload(req.body)) {
-      console.error("[Webhook] Invalid payload:", req.body);
+    if (!validateSunoCallback(req.body)) {
+      console.error("[Webhook] Invalid payload structure:", req.body);
       return res.status(400).json({
         success: false,
-        error: "Invalid payload: missing required fields (jobId, title, lyrics, audioUrl)",
+        error: "Invalid payload structure",
       });
     }
 
-    const { jobId, title, lyrics, audioUrl, imageUrl, videoUrl, duration, tags, prompt, style } = req.body;
+    const { code, msg, data } = req.body;
+    const { callbackType, task_id, data: musicData } = data;
 
-    // Verificar se job existe
-    const job = await getJobById(jobId);
-    if (!job) {
-      console.error("[Webhook] Job not found:", jobId);
-      return res.status(404).json({
+    // Verificar se é erro
+    if (code !== 200) {
+      console.error("[Webhook] Suno API error:", { code, msg, callbackType });
+      
+      // Atualizar job para FAILED
+      try {
+        await updateJobStatus(task_id, "FAILED");
+        console.log("[Webhook] Job marked as FAILED:", task_id);
+      } catch (error) {
+        console.error("[Webhook] Failed to update job status:", error);
+      }
+
+      return res.status(200).json({
         success: false,
-        error: "Job not found",
+        error: msg,
+        code,
       });
     }
 
-    console.log("[Webhook] Processing job:", jobId);
-
-    // Criar registro de música
-    const shareSlug = nanoid(8);
-    const song = await createSong({
-      id: nanoid(),
-      jobId,
-      title,
-      lyrics,
-      audioUrl,
-      shareSlug,
-      createdAt: new Date(),
-    });
-
-    console.log("[Webhook] Song created:", {
-      songId: song?.id,
-      shareSlug,
-      title,
-    });
-
-    // Atualizar status do job para DONE
-    await updateJobStatus(jobId, "DONE");
-
-    console.log("[Webhook] Job status updated to DONE");
-
-    // Enfileirar email de notificação com retry
-    try {
-      const lead = await getLeadByJobId(jobId);
-      if (lead && song && song.shareSlug) {
-        const emailId = await queueMusicReadyEmail(
-          lead.email,
-          jobId,
-          title,
-          song.shareSlug,
-          lead.names
-        );
-        console.log("[Webhook] Music ready email queued:", {
-          emailId,
-          to: lead.email,
-          jobId,
+    // Processar sucesso
+    if (callbackType === "complete" || callbackType === "first") {
+      if (!musicData || !Array.isArray(musicData) || musicData.length === 0) {
+        console.error("[Webhook] No music data in callback");
+        return res.status(400).json({
+          success: false,
+          error: "No music data provided",
         });
       }
-    } catch (error) {
-      console.error("[Webhook] Error queueing email:", error);
-    }
 
-    // Responder com sucesso
-    return res.status(200).json({
-      success: true,
-      message: "Callback processed successfully",
-      data: {
-        jobId,
-        songId: song?.id,
-        shareSlug,
-        shareUrl: `${process.env.APP_URL || "http://localhost:3000"}/m/${shareSlug}`,
-      },
-    });
+      // Processar primeira música do array
+      const firstMusic = musicData[0];
+      if (!firstMusic) {
+        return res.status(400).json({
+          success: false,
+          error: "Music data is empty",
+        });
+      }
+
+      const {
+        audio_url,
+        image_url,
+        prompt,
+        title,
+        tags,
+        duration,
+        model_name,
+      } = firstMusic;
+
+      // Validar dados obrigatórios
+      if (!audio_url || !title) {
+        console.error("[Webhook] Missing required fields:", {
+          audio_url: !!audio_url,
+          title: !!title,
+        });
+        return res.status(400).json({
+          success: false,
+          error: "Missing required fields (audio_url, title)",
+        });
+      }
+
+      // Gerar slug único para compartilhamento
+      const shareSlug = nanoid(16);
+
+      try {
+        // Criar registro de música
+        const song = await createSong({
+          id: nanoid(),
+          jobId: task_id,
+          title: title || "Untitled",
+          lyrics: prompt || "",
+          audioUrl: audio_url,
+          imageUrl: image_url,
+          duration: duration || 0,
+          tags: tags || "",
+          modelName: model_name || "chirp-v3-5",
+          shareSlug,
+          createdAt: new Date(),
+        });
+
+        console.log("[Webhook] Song created:", {
+          jobId: task_id,
+          songId: song?.id,
+          shareSlug,
+          title,
+          duration,
+        });
+
+        // Atualizar job status para DONE
+        await updateJobStatus(task_id, "DONE");
+        console.log("[Webhook] Job marked as DONE:", task_id);
+
+        // Obter lead para enviar email
+        const lead = await getLeadByJobId(task_id);
+        if (lead && lead.email) {
+          console.log("[Webhook] Queuing music ready email for:", lead.email);
+          queueMusicReadyEmail(lead.email, task_id, shareSlug, title).catch(
+            (error) => {
+              console.error("[Webhook] Failed to queue email:", error);
+            }
+          );
+        }
+
+        // Retornar sucesso
+        return res.status(200).json({
+          success: true,
+          message: "Music processed successfully",
+          data: {
+            jobId: task_id,
+            shareSlug,
+            musicUrl: `/m/${shareSlug}`,
+          },
+        });
+      } catch (error) {
+        console.error("[Webhook] Error processing music:", error);
+        
+        // Tentar atualizar job para FAILED
+        try {
+          await updateJobStatus(task_id, "FAILED");
+        } catch (updateError) {
+          console.error("[Webhook] Failed to update job status:", updateError);
+        }
+
+        return res.status(500).json({
+          success: false,
+          error: "Failed to process music",
+        });
+      }
+    } else if (callbackType === "text") {
+      // Callback de geração de texto (apenas prompt gerado)
+      console.log("[Webhook] Text generation completed for task:", task_id);
+      return res.status(200).json({
+        success: true,
+        message: "Text generation received",
+      });
+    } else if (callbackType === "error") {
+      // Callback de erro
+      console.error("[Webhook] Error callback received:", {
+        taskId: task_id,
+        msg,
+      });
+
+      try {
+        await updateJobStatus(task_id, "FAILED");
+      } catch (error) {
+        console.error("[Webhook] Failed to update job status:", error);
+      }
+
+      return res.status(200).json({
+        success: false,
+        error: msg,
+      });
+    } else {
+      console.warn("[Webhook] Unknown callback type:", callbackType);
+      return res.status(200).json({
+        success: true,
+        message: "Callback received",
+      });
+    }
   } catch (error) {
-    console.error("[Webhook] Error processing callback:", error);
+    console.error("[Webhook] Unexpected error:", error);
     return res.status(500).json({
       success: false,
       error: "Internal server error",
-      details: error instanceof Error ? error.message : "Unknown error",
     });
   }
 }
 
 /**
- * Health check para webhook
+ * Health check endpoint para webhook
  */
-export function handleWebhookHealth(req: Request, res: Response) {
-  return res.status(200).json({
-    success: true,
+export async function webhookHealthCheck(req: Request, res: Response) {
+  res.status(200).json({
+    status: "ok",
     message: "Webhook is running",
     timestamp: new Date().toISOString(),
   });
 }
 
 /**
- * Endpoint para testar webhook (POST com dados simulados)
+ * Test endpoint para simular callback da Suno
  */
-export async function handleWebhookTest(req: Request, res: Response) {
-  try {
-    console.log("[Webhook] Test request received");
+export async function webhookTest(req: Request, res: Response) {
+  // Simular callback de sucesso
+  const mockCallback: SunoCallbackRequest = {
+    code: 200,
+    msg: "All generated successfully.",
+    data: {
+      callbackType: "complete",
+      task_id: req.body?.task_id || "test-task-123",
+      data: [
+        {
+          id: "music-id-123",
+          audio_url: "https://example.com/music.mp3",
+          image_url: "https://example.com/cover.jpg",
+          prompt:
+            "[Verse] This is a test music generation\n[Chorus] Testing the webhook",
+          title: req.body?.title || "Test Music",
+          tags: "test, webhook",
+          model_name: "chirp-v3-5",
+          duration: 180,
+          createTime: new Date().toISOString(),
+        },
+      ],
+    },
+  };
 
-    // Dados de teste
-    const testPayload: SunoCallbackPayload = {
-      jobId: "test-job-" + Date.now(),
-      title: "Música de Teste - Seu Verso",
-      lyrics: `Verso 1:
-Esta é uma música de teste
-Para validar nosso webhook
-Tudo funcionando perfeitamente
-Seu Verso é o melhor projeto
-
-Pré-refrão:
-Teste, teste, teste
-Webhook funcionando
-
-Refrão:
-Seu Verso, Seu Verso
-A melhor plataforma
-Gerando músicas com IA
-Que transformam histórias em arte`,
-      audioUrl: "https://example.com/test-audio.mp3",
-    };
-
-    console.log("[Webhook] Processing test payload:", testPayload);
-
-    // Tentar processar como se fosse um callback real
-    const result = await handleSunoCallback(
-      { body: testPayload } as Request,
-      res
-    );
-
-    return result;
-  } catch (error) {
-    console.error("[Webhook] Error in test:", error);
-    return res.status(500).json({
-      success: false,
-      error: "Test failed",
-      details: error instanceof Error ? error.message : "Unknown error",
-    });
-  }
+  // Chamar handler
+  await handleSunoCallback(
+    { body: mockCallback } as Request,
+    res
+  );
 }

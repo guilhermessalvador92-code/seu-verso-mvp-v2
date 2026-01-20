@@ -7,7 +7,7 @@ import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
-import { handleSunoCallback, handleWebhookHealth, handleWebhookTest } from "../webhook";
+import { handleSunoCallback, webhookHealthCheck, webhookTest } from "../webhook";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -39,8 +39,8 @@ async function startServer() {
   
   // Webhook routes for Suno API callbacks
   app.post("/api/webhook/suno", handleSunoCallback);
-  app.get("/api/webhook/health", handleWebhookHealth);
-  app.post("/api/webhook/test", handleWebhookTest);
+  app.get("/api/webhook/health", webhookHealthCheck);
+  app.post("/api/webhook/test", webhookTest);
   
   // tRPC API
   app.use(

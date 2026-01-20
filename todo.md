@@ -88,3 +88,11 @@
 - [x] Adicionar verificacao de shareSlug antes de navegar
 - [x] Criar testes de tratamento de erro (4 testes passando)
 - [x] Validar seguranca contra slugs invalidos
+
+
+## Adaptacao de Webhook Suno API
+- [x] Adaptar webhook para nova estrutura de callback
+- [x] Processar array de musicas no callback
+- [x] Extrair audio_url, image_url, prompt, title, duration
+- [x] Testar com payload real da Suno (3 testes vitest passando)
+- [x] Validar fluxo completo (teste com curl bem-sucedido)

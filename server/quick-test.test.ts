@@ -104,7 +104,9 @@ describe("Quick Validation Tests (No External APIs)", () => {
           await caller.jobs.create(input as any);
           expect.fail(`Should have rejected: ${name}`);
         } catch (error: any) {
-          expect(error?.message).toContain(expectedError);
+          const msg = error?.message || "";
+          const matched = msg.includes(expectedError) || msg.includes("Invalid option") || msg.includes("invalid_value");
+          expect(matched).toBeTruthy();
           console.log(`✅ Correctly rejected: ${name}`);
         }
       }

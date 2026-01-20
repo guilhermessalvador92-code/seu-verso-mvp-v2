@@ -49,6 +49,8 @@ export interface SunoTaskDetails {
 const SUNO_API_BASE = "https://api.sunoapi.org";
 const SUNO_API_KEY = process.env.SUNO_API_KEY;
 
+import { nanoid } from "nanoid";
+
 export async function generateMusicWithSuno(
   jobId: string,
   story: string,
@@ -58,6 +60,13 @@ export async function generateMusicWithSuno(
   mood: string | undefined,
   callbackUrl: string
 ): Promise<string | null> {
+  // In test or CI environments we avoid making external API calls to prevent
+  // consuming credits or introducing flakiness. Return a mock task id instead.
+  if (process.env.NODE_ENV === "test" || process.env.DISABLE_EXTERNAL_APIS === "true") {
+    console.log("[Suno] Skipping external call in test mode; returning mock taskId");
+    return `test-${nanoid(8)}`;
+  }
+
   if (!SUNO_API_KEY) {
     console.error("[Suno] API Key not configured");
     return null;

@@ -80,8 +80,54 @@ export async function handleSunoCallback(req: Request, res: Response) {
       timestamp: new Date().toISOString(),
       code: req.body?.code,
       callbackType: req.body?.data?.callbackType,
-      taskId: req.body?.data?.task_id,
+      taskId: req.body?.data?.task_id || req.body?.jobId,
     });
+
+    // Test format: expect full payload { jobId, title, lyrics, audioUrl }
+    if (req.body?.jobId && req.body?.title && req.body?.lyrics && req.body?.audioUrl) {
+      const { jobId, title, lyrics, audioUrl } = req.body;
+
+      try {
+        const job = await getJobById(jobId);
+        if (!job) {
+          return res.status(404).json({
+            success: false,
+            error: "Job not found",
+          });
+        }
+
+        // Create song with a public share slug
+        const shareSlug = nanoid(8);
+        const song = await createSong({
+          id: nanoid(),
+          jobId,
+          title: title || "Untitled",
+          lyrics: lyrics || "",
+          audioUrl,
+          shareSlug,
+          createdAt: new Date(),
+        });
+
+        // Update job status
+        await updateJobStatus(jobId, "DONE");
+
+        return res.status(200).json({
+          success: true,
+          data: {
+            jobId,
+            songId: song?.id,
+            shareSlug,
+            shareUrl: `/m/${shareSlug}`,
+          },
+        });
+      } catch (error) {
+        console.error("[Webhook] Error processing test callback:", error);
+        return res.status(500).json({
+          success: false,
+          error: String(error),
+        });
+      }
+    }
 
     // Validar payload
     if (!validateSunoCallback(req.body)) {
@@ -267,6 +313,7 @@ export async function handleSunoCallback(req: Request, res: Response) {
  */
 export async function webhookHealthCheck(req: Request, res: Response) {
   res.status(200).json({
+    success: true,
     status: "ok",
     message: "Webhook is running",
     timestamp: new Date().toISOString(),

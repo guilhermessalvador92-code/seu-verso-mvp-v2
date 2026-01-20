@@ -17,6 +17,12 @@ const MAX_RETRIES = 360; // 1 hora (360 * 10s)
 let pollingInterval: NodeJS.Timeout | null = null;
 
 export function addJobToPolling(jobId: string, sunoTaskId: string): void {
+  // Disable polling in test or when external APIs are explicitly disabled
+  if (process.env.NODE_ENV === "test" || process.env.DISABLE_EXTERNAL_APIS === "true") {
+    console.log("[Polling] Skipping addJobToPolling in test mode for", { jobId, sunoTaskId });
+    return;
+  }
+
   POLLING_JOBS.set(jobId, {
     jobId,
     sunoTaskId,

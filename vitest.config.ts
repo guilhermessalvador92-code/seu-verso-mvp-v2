@@ -1,7 +1,11 @@
 import { defineConfig } from "vitest/config";
 import path from "path";
+import dotenv from "dotenv";
 
 const templateRoot = path.resolve(import.meta.dirname);
+
+// Load .env file
+dotenv.config({ path: path.resolve(templateRoot, ".env") });
 
 export default defineConfig({
   root: templateRoot,

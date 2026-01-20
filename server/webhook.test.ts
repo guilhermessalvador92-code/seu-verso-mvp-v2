@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { createJob, getJobById, getSongByJobId } from "./db";
+import { handleSunoCallback, webhookHealthCheck } from "./webhook";
 import { nanoid } from "nanoid";
 
 describe("Webhook Integration Tests", () => {
@@ -19,7 +20,7 @@ describe("Webhook Integration Tests", () => {
 
   describe("Webhook Callback Processing", () => {
     it("should process valid Suno callback", async () => {
-      // Simular callback da Suno API
+      // Simular callback da Suno API (direct handler call, no HTTP)
       const callbackPayload = {
         jobId: testJobId,
         title: "Música de Teste - Seu Verso",
@@ -41,22 +42,28 @@ Que transformam histórias em arte`,
         audioUrl: "https://example.com/test-audio.mp3",
       };
 
-      console.log("\n📝 Sending webhook callback...");
+      console.log("\n📝 Processing webhook callback directly (no HTTP)...");
 
-      // Fazer POST para webhook
-      const response = await fetch("http://localhost:3000/api/webhook/suno", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      // Mock Express req/res objects
+      const req = { body: callbackPayload } as any;
+      const res = {
+        status: function(code: number) {
+          this.statusCode = code;
+          return this;
         },
-        body: JSON.stringify(callbackPayload),
-      });
+        json: function(data: any) {
+          this.data = data;
+          return this;
+        },
+      } as any;
 
-      const result = await response.json();
+      await handleSunoCallback(req, res);
+
+      const result = res.data;
 
       console.log("📊 Webhook response:", result);
 
-      expect(response.status).toBe(200);
+      expect(res.statusCode).toBe(200);
       expect(result.success).toBe(true);
       expect(result.data).toHaveProperty("jobId");
       expect(result.data).toHaveProperty("songId");
@@ -122,37 +129,51 @@ Que transformam histórias em arte`,
       ];
 
       for (const { name, payload } of invalidPayloads) {
-        const response = await fetch("http://localhost:3000/api/webhook/suno", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
+        const req = { body: payload } as any;
+        const res = {
+          status: function(code: number) {
+            this.statusCode = code;
+            return this;
           },
-          body: JSON.stringify(payload),
-        });
+          json: function(data: any) {
+            this.data = data;
+            return this;
+          },
+        } as any;
 
-        expect(response.status).toBe(400);
-        const result = await response.json();
+        await handleSunoCallback(req, res);
+
+        expect(res.statusCode).toBe(400);
+        const result = res.data;
         expect(result.success).toBe(false);
         console.log(`✅ Correctly rejected: ${name}`);
       }
     });
 
     it("should handle non-existent job", async () => {
-      const response = await fetch("http://localhost:3000/api/webhook/suno", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+      const req = {
+        body: {
           jobId: "non-existent-job-xyz",
           title: "Test",
           lyrics: "Test lyrics",
           audioUrl: "https://example.com/audio.mp3",
-        }),
-      });
+        },
+      } as any;
+      const res = {
+        status: function(code: number) {
+          this.statusCode = code;
+          return this;
+        },
+        json: function(data: any) {
+          this.data = data;
+          return this;
+        },
+      } as any;
 
-      expect(response.status).toBe(404);
-      const result = await response.json();
+      await handleSunoCallback(req, res);
+
+      expect(res.statusCode).toBe(404);
+      const result = res.data;
       expect(result.success).toBe(false);
       expect(result.error).toContain("Job not found");
       console.log(`✅ Non-existent job handled correctly`);
@@ -161,12 +182,23 @@ Que transformam histórias em arte`,
 
   describe("Webhook Health Check", () => {
     it("should return health status", async () => {
-      const response = await fetch("http://localhost:3000/api/webhook/health");
-      const result = await response.json();
+      const req = {} as any;
+      const res = {
+        status: function(code: number) {
+          this.statusCode = code;
+          return this;
+        },
+        json: function(data: any) {
+          this.data = data;
+          return this;
+        },
+      } as any;
 
-      expect(response.status).toBe(200);
-      expect(result.success).toBe(true);
-      expect(result.message).toContain("running");
+      await webhookHealthCheck(req, res);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.data.success).toBe(true);
+      expect(res.data.message).toContain("running");
       console.log(`✅ Webhook health check passed`);
     });
   });

@@ -7,6 +7,7 @@ import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
+import { handleSunoCallback, handleWebhookHealth, handleWebhookTest } from "../webhook";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -35,6 +36,12 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
+  
+  // Webhook routes for Suno API callbacks
+  app.post("/api/webhook/suno", handleSunoCallback);
+  app.get("/api/webhook/health", handleWebhookHealth);
+  app.post("/api/webhook/test", handleWebhookTest);
+  
   // tRPC API
   app.use(
     "/api/trpc",
@@ -44,6 +51,12 @@ async function startServer() {
     })
   );
   // development mode uses Vite, production mode uses static files
+  // Log webhook URL
+  const appUrl = process.env.APP_URL || `http://localhost:${process.env.PORT || 3000}`;
+  console.log(`[Webhook] Suno callback URL: ${appUrl}/api/webhook/suno`);
+  console.log(`[Webhook] Health check URL: ${appUrl}/api/webhook/health`);
+  console.log(`[Webhook] Test endpoint URL: ${appUrl}/api/webhook/test`);
+  
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);
   } else {

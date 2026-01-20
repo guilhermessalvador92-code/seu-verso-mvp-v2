@@ -48,3 +48,14 @@
 - [x] Validar resposta do Suno com audioUrl (callback implementado)
 - [x] Implementar polling automático (ativo)
 - [x] Corrigir endpoint de polling (usando callback URL)
+
+
+## Webhook Suno API (Nova Sessão)
+- [x] Criar endpoint webhook para callback
+- [x] Implementar validação de payload
+- [x] Processar resultado da Suno (audioUrl, lyrics, title)
+- [x] Atualizar job status para DONE
+- [x] Enviar email de notificação (integrado)
+- [x] Testar webhook com curl (6 testes passando)
+- [x] Fornecer URL de webhook ao usuário
+- [x] Criar documentação completa (WEBHOOK_DOCUMENTATION.md)

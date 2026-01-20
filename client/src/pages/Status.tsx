@@ -203,6 +203,10 @@ export default function Status() {
           <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 border-b border-slate-200">
             <CardTitle className="text-2xl">Sua Música Está Sendo Criada</CardTitle>
             <CardDescription>Acompanhe o progresso abaixo</CardDescription>
+            <div className="mt-4 p-3 bg-white rounded border border-slate-200">
+              <p className="text-sm text-slate-600"><strong>ID da Requisição:</strong></p>
+              <p className="text-sm font-mono text-purple-600 break-all">{jobId}</p>
+            </div>
           </CardHeader>
           <CardContent className="pt-8">
             <div className="space-y-8">
@@ -252,14 +256,23 @@ export default function Status() {
               </div>
 
               {/* Manual Refresh */}
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => refetch()}
-              >
-                <Loader2 className="w-4 h-4 mr-2" />
-                Atualizar Agora
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => refetch()}
+                >
+                  <Loader2 className="w-4 h-4 mr-2" />
+                  Atualizar Agora
+                </Button>
+                <Button
+                  className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"
+                  onClick={() => setLocation("/m/" + jobId)}
+                >
+                  <Music className="w-4 h-4 mr-2" />
+                  Ir para Download
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>

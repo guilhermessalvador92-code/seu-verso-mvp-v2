@@ -35,3 +35,16 @@
 - [x] Executar testes (9 testes passando)
 - [x] Validar build do projeto
 - [x] Otimizar performance
+
+
+## Correções & Testes (Nova Sessão)
+- [x] Corrigir erro de validação boolean em routers
+- [x] Configurar SUNO_API_KEY nas secrets
+- [x] Configurar GEMINI_API_KEY nas secrets
+- [x] Testar criação de música com Suno API real (Task ID gerado com sucesso)
+- [x] Testar geração de prompt com Gemini LLM (funcionando)
+- [x] Testar requisição GET para download de música (funcionando)
+- [x] Testar fluxo completo end-to-end (validações passando)
+- [x] Validar resposta do Suno com audioUrl (callback implementado)
+- [x] Implementar polling automático (ativo)
+- [x] Corrigir endpoint de polling (usando callback URL)

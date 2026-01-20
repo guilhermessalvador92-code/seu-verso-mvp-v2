@@ -192,7 +192,8 @@ export default function Create() {
                 <div className="flex items-start gap-3">
                   <Checkbox
                     id="terms"
-                    {...register("agreedToTerms")}
+                    checked={agreedToTerms}
+                    onCheckedChange={(checked) => setValue("agreedToTerms", checked === true)}
                     className="mt-1"
                   />
                   <label htmlFor="terms" className="text-sm text-slate-700 cursor-pointer">

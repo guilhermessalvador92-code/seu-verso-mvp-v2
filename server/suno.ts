@@ -64,7 +64,7 @@ export async function generateMusicWithSuno(
   }
 
   try {
-    // Gerar prompt otimizado com LLM
+    // Gerar prompt otimizado com LLM (Gemini)
     const prompt = await buildPromptWithLLM(story, names, occasion, mood);
 
     // Mapear estilo musical para o formato esperado pela Suno
@@ -133,13 +133,15 @@ export async function generateMusicWithSuno(
 }
 
 export async function getSunoTaskDetails(taskId: string): Promise<SunoTaskDetails | null> {
+  // Try to fetch from Suno API with fallback endpoints
   if (!SUNO_API_KEY) {
     console.error("[Suno] API Key not configured");
     return null;
   }
 
   try {
-    const response = await fetch(`${SUNO_API_BASE}/api/v1/getDetails?taskId=${taskId}`, {
+    // Use /api/v1/fetch endpoint with ids parameter
+    const response = await fetch(`${SUNO_API_BASE}/api/v1/fetch?ids=${taskId}`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${SUNO_API_KEY}`,

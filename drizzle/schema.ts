@@ -65,3 +65,23 @@ export const leads = mysqlTable("leads", {
 
 export type Lead = typeof leads.$inferSelect;
 export type InsertLead = typeof leads.$inferInsert;
+
+export const emailQueue = mysqlTable("emailQueue", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  to: varchar("to", { length: 320 }).notNull(),
+  subject: varchar("subject", { length: 255 }).notNull(),
+  htmlContent: text("htmlContent").notNull(),
+  type: mysqlEnum("type", ["ORDER_CONFIRMATION", "MUSIC_READY", "NOTIFICATION"]).notNull(),
+  jobId: varchar("jobId", { length: 64 }),
+  status: mysqlEnum("status", ["PENDING", "SENT", "FAILED"]).default("PENDING").notNull(),
+  attempts: int("attempts").default(0).notNull(),
+  maxAttempts: int("maxAttempts").default(5).notNull(),
+  nextRetryAt: timestamp("nextRetryAt"),
+  lastError: text("lastError"),
+  sentAt: timestamp("sentAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type EmailQueue = typeof emailQueue.$inferSelect;
+export type InsertEmailQueue = typeof emailQueue.$inferInsert;

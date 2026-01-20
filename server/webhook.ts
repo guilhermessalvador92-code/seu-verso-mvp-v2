@@ -4,8 +4,8 @@
  */
 
 import { Request, Response } from "express";
-import { getJobById, updateJobStatus, createSong, getSongByJobId } from "./db";
-import { sendMusicReadyEmail } from "./email";
+import { getJobById, updateJobStatus, createSong, getSongByJobId, getLeadByJobId } from "./db";
+import { queueMusicReadyEmail } from "./email-queue-integration";
 import { nanoid } from "nanoid";
 
 export interface SunoCallbackPayload {
@@ -89,16 +89,25 @@ export async function handleSunoCallback(req: Request, res: Response) {
 
     console.log("[Webhook] Job status updated to DONE");
 
-    // Buscar lead para enviar email
+    // Enfileirar email de notificação com retry
     try {
-      const savedSong = await getSongByJobId(jobId);
-      if (savedSong) {
-        // Buscar email do lead (será necessário adicionar função no db.ts)
-        // Por enquanto, vamos enviar email genérico
-        console.log("[Webhook] Song saved, ready for email notification");
+      const lead = await getLeadByJobId(jobId);
+      if (lead && song && song.shareSlug) {
+        const emailId = await queueMusicReadyEmail(
+          lead.email,
+          jobId,
+          title,
+          song.shareSlug,
+          lead.names
+        );
+        console.log("[Webhook] Music ready email queued:", {
+          emailId,
+          to: lead.email,
+          jobId,
+        });
       }
     } catch (error) {
-      console.error("[Webhook] Error retrieving saved song:", error);
+      console.error("[Webhook] Error queueing email:", error);
     }
 
     // Responder com sucesso

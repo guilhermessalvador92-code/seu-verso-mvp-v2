@@ -7,7 +7,7 @@ import { nanoid } from "nanoid";
 import { createJob, getJobById, updateJobStatus, createSong, getSongByJobId, getSongBySlug, createLead, incrementDownloadCount } from "./db";
 import { CreateJobPayload, JobStatusResponse, CallbackPayload, MUSIC_STYLES, MOODS } from "@shared/types";
 import { generateMusicWithSuno } from "./suno";
-import { sendOrderConfirmationEmail } from "./email";
+import { queueOrderConfirmationEmail } from "./email-queue-integration";
 import { addJobToPolling } from "./suno-polling";
 
 export const appRouter = router({
@@ -60,10 +60,10 @@ export const appRouter = router({
             createdAt: new Date(),
           });
 
-          // Enviar email de confirmação
+          // Enfileirar email de confirmação com retry
           if (lead) {
-            sendOrderConfirmationEmail(input.email, jobId, input.names).catch(error => {
-              console.error("[Jobs] Failed to send confirmation email:", error);
+            queueOrderConfirmationEmail(input.email, jobId, input.names).catch(error => {
+              console.error("[Jobs] Failed to queue confirmation email:", error);
             });
           }
 

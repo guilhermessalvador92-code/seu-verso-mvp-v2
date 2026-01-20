@@ -59,3 +59,14 @@
 - [x] Testar webhook com curl (6 testes passando)
 - [x] Fornecer URL de webhook ao usuário
 - [x] Criar documentação completa (WEBHOOK_DOCUMENTATION.md)
+
+
+## Email Retry Logic (Nova Sessão)
+- [x] Criar tabela de fila de emails (emailQueue)
+- [x] Implementar sistema de retry com backoff exponencial (5s → 10s → 20s → 40s → 1h)
+- [x] Integrar retry ao webhook de callback (queueMusicReadyEmail)
+- [x] Integrar retry ao router de criação de job (queueOrderConfirmationEmail)
+- [x] Criar worker de processamento de fila (startEmailQueueWorker)
+- [x] Adicionar logging detalhado (todos os eventos registrados)
+- [x] Testar retry logic (14 testes vitest passando)
+- [x] Documentar sistema de retry

@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: seu-verso-mvp-v2
+    env: node
+    plan: free
+    buildCommand: pnpm install && pnpm run build
+    startCommand: pnpm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: SUNO_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: APP_URL
+        value: https://seu-verso-mvp-v2.onrender.com
+    
+  - type: pserv
+    name: seu-verso-database
+    plan: free
+    ipAllowList: []

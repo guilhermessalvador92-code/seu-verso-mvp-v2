@@ -131,7 +131,8 @@ export default function Status() {
                   <Button
                     size="lg"
                     className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"
-                    onClick={() => setLocation(`/m/${song.shareSlug}`)}
+                    onClick={() => song.shareSlug ? setLocation(`/m/${song.shareSlug}`) : alert('Slug não disponível ainda')}
+                    disabled={!song.shareSlug}
                   >
                     <Music className="w-4 h-4 mr-2" />
                     Ver Página de Compartilhamento
@@ -267,10 +268,11 @@ export default function Status() {
                 </Button>
                 <Button
                   className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"
-                  onClick={() => setLocation("/m/" + jobId)}
+                  onClick={() => alert('Aguarde a música ficar pronta para fazer download')}
+                  disabled
                 >
                   <Music className="w-4 h-4 mr-2" />
-                  Ir para Download
+                  Ir para Download (Aguarde)
                 </Button>
               </div>
             </div>

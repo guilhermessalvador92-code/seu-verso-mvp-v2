@@ -98,16 +98,52 @@ export default function MusicPage() {
 
   if (error || !song) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white flex items-center justify-center">
-        <Card className="border-slate-200 w-full max-w-md">
-          <CardContent className="pt-6 text-center">
-            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <p className="text-slate-900 font-semibold mb-4">Erro ao carregar música</p>
-            <Button onClick={() => setLocation("/")} className="bg-purple-600 hover:bg-purple-700">
-              Voltar para Home
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white flex items-center justify-center py-12">
+        <div className="max-w-md w-full px-4">
+          <Card className="border-slate-200 shadow-lg">
+            <CardHeader className="bg-gradient-to-r from-orange-50 to-red-50 border-b border-slate-200">
+              <div className="flex items-center gap-3">
+                <AlertCircle className="w-8 h-8 text-orange-600" />
+                <div>
+                  <CardTitle className="text-xl">Música Não Encontrada</CardTitle>
+                  <CardDescription>Verifique o link ou acompanhe o status</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <div className="space-y-4">
+                <p className="text-slate-700 text-sm">
+                  A música que você está procurando não foi encontrada. Isso pode acontecer se a música ainda está sendo gerada ou o link está incorreto.
+                </p>
+                
+                {slug && (
+                  <div className="bg-slate-50 rounded p-3 border border-slate-200">
+                    <p className="text-xs text-slate-600 mb-1 font-semibold">Slug da Música:</p>
+                    <p className="text-xs font-mono text-slate-700 break-all">{slug}</p>
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-3 pt-4">
+                  <Button
+                    size="lg"
+                    className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+                    onClick={() => setLocation("/")}
+                  >
+                    Voltar para Home
+                  </Button>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => setLocation("/create")}
+                  >
+                    Criar Nova Música
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }

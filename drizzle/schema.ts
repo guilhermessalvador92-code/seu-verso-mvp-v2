@@ -25,4 +25,43 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
-// TODO: Add your tables here
+export const jobs = mysqlTable("jobs", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  status: mysqlEnum("status", ["QUEUED", "PROCESSING", "DONE", "FAILED"]).default("QUEUED").notNull(),
+  sunoTaskId: varchar("sunoTaskId", { length: 128 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Job = typeof jobs.$inferSelect;
+export type InsertJob = typeof jobs.$inferInsert;
+
+export const songs = mysqlTable("songs", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  jobId: varchar("jobId", { length: 64 }).notNull(),
+  title: text("title"),
+  lyrics: text("lyrics"),
+  audioUrl: text("audioUrl"),
+  shareSlug: varchar("shareSlug", { length: 128 }).unique(),
+  emailSent: timestamp("emailSent"),
+  downloadCount: int("downloadCount").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type Song = typeof songs.$inferSelect;
+export type InsertSong = typeof songs.$inferInsert;
+
+export const leads = mysqlTable("leads", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  jobId: varchar("jobId", { length: 64 }).notNull(),
+  email: varchar("email", { length: 320 }).notNull(),
+  style: varchar("style", { length: 64 }).notNull(),
+  names: text("names").notNull(),
+  occasion: text("occasion"),
+  story: text("story").notNull(),
+  mood: varchar("mood", { length: 64 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type Lead = typeof leads.$inferSelect;
+export type InsertLead = typeof leads.$inferInsert;

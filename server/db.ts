@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, users, jobs, songs, leads, Job, Song, Lead, InsertJob, InsertSong, InsertLead } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -89,4 +89,106 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+export async function createJob(data: InsertJob): Promise<Job | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  await db.insert(jobs).values(data);
+  return data as Job;
+}
+
+export async function getJobById(jobId: string): Promise<Job | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(jobs).where(eq(jobs.id, jobId)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function updateJobStatus(jobId: string, status: Job["status"]): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(jobs).set({ status, updatedAt: new Date() }).where(eq(jobs.id, jobId));
+}
+
+export async function updateJobSunoTaskId(jobId: string, sunoTaskId: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(jobs).set({ sunoTaskId, updatedAt: new Date() }).where(eq(jobs.id, jobId));
+}
+
+export async function updateSongAudioUrl(jobId: string, audioUrl: string, title?: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  const updateData: Record<string, unknown> = { audioUrl };
+  if (title) updateData.title = title;
+  await db.update(songs).set(updateData).where(eq(songs.jobId, jobId));
+}
+
+export async function createSong(data: InsertSong): Promise<Song | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  await db.insert(songs).values(data);
+  return data as Song;
+}
+
+export async function getSongByJobId(jobId: string): Promise<Song | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(songs).where(eq(songs.jobId, jobId)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getSongBySlug(slug: string): Promise<Song | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(songs).where(eq(songs.shareSlug, slug)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function createLead(data: InsertLead): Promise<Lead | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  await db.insert(leads).values(data);
+  return data as Lead;
+}
+
+export async function getLeadByJobId(jobId: string): Promise<Lead | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(leads).where(eq(leads.jobId, jobId)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function markEmailSent(jobId: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+
+  try {
+    const song = await db.select().from(songs).where(eq(songs.jobId, jobId)).limit(1);
+    if (song.length > 0) {
+      await db
+        .update(songs)
+        .set({ emailSent: new Date() })
+        .where(eq(songs.id, song[0].id));
+    }
+  } catch (error) {
+    console.error("[Database] Error marking email as sent:", error);
+  }
+}
+
+export async function incrementDownloadCount(shareSlug: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+
+  try {
+    const song = await db.select().from(songs).where(eq(songs.shareSlug, shareSlug)).limit(1);
+    if (song.length > 0) {
+      const currentCount = song[0].downloadCount || 0;
+      await db
+        .update(songs)
+        .set({ downloadCount: currentCount + 1 })
+        .where(eq(songs.shareSlug, shareSlug));
+    }
+  } catch (error) {
+    console.error("[Database] Error incrementing download count:", error);
+  }
+}

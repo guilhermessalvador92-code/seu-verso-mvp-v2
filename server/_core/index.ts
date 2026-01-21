@@ -36,16 +36,18 @@ async function startServer() {
   app.use((req, res, next) => {
     res.setHeader(
       "Content-Security-Policy",
-      "default-src 'self'; " +
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
-      "style-src 'self' 'unsafe-inline'; " +
-      "img-src 'self' data: https:; " +
-      "font-src 'self' data:; " +
-      "media-src 'self' https://musicfile.api.box; " +
-      "connect-src 'self' https:; " +
-      "frame-ancestors 'none'; " +
-      "base-uri 'self'; " +
-      "form-action 'self';"
+      [
+        "default-src 'self'",
+        "script-src 'self'",
+        "style-src 'self' 'unsafe-inline'",
+        "img-src 'self' data: https:",
+        "font-src 'self' data:",
+        "media-src 'self' https://musicfile.api.box",
+        "connect-src 'self' https://musicfile.api.box",
+        "frame-ancestors 'none'",
+        "base-uri 'self'",
+        "form-action 'self'",
+      ].join("; ")
     );
     next();
   });

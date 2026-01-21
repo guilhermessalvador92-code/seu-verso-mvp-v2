@@ -70,12 +70,33 @@ export const appRouter = router({
 
           // Iniciar geração de música
           await updateJobStatus(jobId, "PROCESSING");
+          
+          // ETAPA 1: Gerar letras validadas ANTES da música
+          console.log('[Jobs] Step 1: Generating validated lyrics...');
+          let enhancedLyrics = '';
+          try {
+            const { generateValidatedLyrics } = await import("./_core/gemini");
+            const lyricsResult = await generateValidatedLyrics({
+              story: input.story,
+              style: input.style,
+              title: input.title,
+              occasion: input.occasion,
+              mood: input.mood,
+            });
+            enhancedLyrics = lyricsResult.lyrics;
+            console.log('[Jobs] Validated lyrics generated:', lyricsResult.lyrics.substring(0, 100) + '...');
+          } catch (lyricsError) {
+            console.warn('[Jobs] Lyrics generation failed, proceeding with basic prompt:', lyricsError);
+          }
+          
+          // ETAPA 2: Gerar música com letras aprimoradas
+          console.log('[Jobs] Step 2: Generating music with enhanced lyrics...');
           const appUrl = process.env.APP_URL || "http://localhost:3000";
           const callbackUrl = `${appUrl}/api/webhook/suno`;
 
           const sunoTaskId = await generateMusicWithSuno(
             jobId,
-            input.story,
+            enhancedLyrics || input.story, // Use validated lyrics or fallback to story
             input.style,
             input.title,
             input.occasion,
@@ -271,6 +292,52 @@ export const appRouter = router({
   }),
 
     ai: router({
+      generateLyrics: publicProcedure
+        .input(
+          z.object({
+            story: z.string().min(10, "História deve ter pelo menos 10 caracteres"),
+            style: z.string(),
+            title: z.string(),
+            occasion: z.string().optional(),
+            mood: z.string().optional(),
+          })
+        )
+        .mutation(async ({ input }) => {
+          try {
+            console.log('[AI] Generating lyrics with validation...');
+            
+            const { generateValidatedLyrics } = await import("./_core/gemini");
+            
+            const result = await generateValidatedLyrics({
+              story: input.story,
+              style: input.style,
+              title: input.title,
+              occasion: input.occasion,
+              mood: input.mood,
+            });
+            
+            console.log('[AI] Validated lyrics generated successfully');
+            
+            return { 
+              success: true, 
+              data: {
+                lyrics: result.lyrics,
+                structure: result.structure,
+                theme: result.theme,
+                wordCount: result.lyrics.length,
+                validated: true
+              }
+            };
+          } catch (error) {
+            console.error("[AI] Lyrics generation failed:", error);
+            return {
+              success: false,
+              error: "Failed to generate lyrics",
+              message: error instanceof Error ? error.message : "Unknown error"
+            };
+          }
+        }),
+        
       enhanceLyrics: publicProcedure
         .input(
           z.object({

@@ -90,56 +90,98 @@ export async function enhanceLyrics(options: LyricsEnhancementOptions): Promise<
   } = options;
 
   // Build contextual prompt for Gemini
-  const prompt = `Você é um compositor profissional brasileiro especializado em criar letras emocionantes e personalizadas.
+  const prompt = `Você é um compositor e storyteller brasileiro MESTRE em criar letras que EMOCIONAM e CONECTAM profundamente.
 
-CONTEXTO DA MÚSICA:
+=== CONTEXTO EMOCIONAL ===
 - Título: "${title}"
 - Estilo Musical: ${style}
-- História/Contexto: ${story}
-${occasion ? `- Ocasião: ${occasion}` : ''}
-${mood ? `- Clima desejado: ${mood}` : ''}
-${originalLyrics ? `\nLETRA ORIGINAL:\n${originalLyrics}` : ''}
+- História Real: ${story}
+${occasion ? `- Ocasião Especial: ${occasion}` : ''}
+${mood ? `- Clima Desejado: ${mood}` : ''}
+${originalLyrics ? `\nLETRA BASE (para aprimorar):\n${originalLyrics}` : ''}
 
-INSTRUÇÕES:
-1. ${originalLyrics ? 'Melhore e aprimore a letra original mantendo a essência' : 'Crie uma letra original baseada na história'}
-2. Use estrutura musical brasileira (Verso, Pré-Refrão, Refrão)
-3. Conecte emocionalmente com a história pessoal
-4. Mantenha o estilo ${style} autêntico
-5. Use APENAS português brasileiro claro e natural
-6. DICÇÃO E ARTICULAÇÃO: Todas as palavras devem ser fáceis de pronunciar e cantar
-7. EVITE: Palavras estrangeiras, gírias complexas, termos difíceis de articular
-8. PERMITA: Apenas termos estrangeiros que já são naturais no português (ex: "love", "baby" se combinarem)
-9. FLUIDEZ: Letra deve ter ritmo natural e métrica consistente
-10. CLAREZA: Cada verso deve transmitir uma ideia clara e emocionante
-11. Inclua detalhes específicos da história quando possível
-12. ORGANIZAÇÃO: Letra deve ter progressão lógica e emocional
+=== REGRAS RÍGIDAS ===
+❌ JAMAIS inicie com frases genéricas como:
+   - "Uma música forte e empolgante"
+   - "Uma história de amor cantada em..."
+   - "Esta é uma canção sobre..."
+   - "Vamos contar a história de..."
 
-FORMATO DE RESPOSTA:
-[Verso 1]
-(letra do primeiro verso)
+✅ SEMPRE comece DIRETO na narrativa emocional
+✅ MERGULHE imediatamente na história pessoal
+✅ USE detalhes específicos da história fornecida
+
+=== GATILHOS DE NEUROMARKETING ===
+1. 🧠 NOSTALGIA: Evoque memórias afetivas específicas
+2. 💝 PERTENCIMENTO: Crie conexão "essa música é sobre MIM"
+3. 🎯 ESPECIFICIDADE: Use detalhes únicos da história
+4. 😢 CONTRASTE EMOCIONAL: Alterne momentos doces/intensos
+5. 🔄 REPETIÇÃO ESTRATÉGICA: Palavras-chave que grudam na mente
+6. 🎭 IDENTIFICAÇÃO: O ouvinte se vê na história
+7. ⚡ URGÊNCIA EMOCIONAL: "Este momento é único"
+
+=== ESTRUTURA STORYTELLING ===
+SIGA ESTA PROGRESSÃO NARRATIVA:
+
+[Verso 1 - ESTABELECER O MUNDO]
+- Contexto específico da história
+- Detalhes sensoriais (cheiros, sons, lugares)
+- Personagens reais da narrativa
+
+[Pré-Refrão - TENSÃO EMOCIONAL]
+- Momento de transição emocional
+- Preparar para o clímax emocional
+
+[Refrão - VERDADE UNIVERSAL + ESPECÍFICA]
+- Mensagem central que ressoa universalmente
+- MAS com detalhes específicos desta história
+- Frase que o ouvinte vai cantar e lembrar
+
+[Verso 2 - DESENVOLVIMENTO]
+- Aprofundar a narrativa
+- Mostrar evolução/crescimento
+- Adicionar camada emocional
 
 [Pré-Refrão]
-(preparação para o refrão)
+- Intensificar a emoção
 
 [Refrão]
-(refrão principal - mais forte emocionalmente)
+- Repetir com variação sutil
 
-[Verso 2]
-(segundo verso desenvolvendo a história)
-
-[Pré-Refrão]
-(preparação para o refrão)
-
-[Refrão]
-(refrão principal repetido)
-
-[Bridge/Ponte]
-(momento de maior emoção)
+[Ponte/Bridge - REVELAÇÃO EMOCIONAL]
+- Momento mais íntimo e vulnerável
+- Verdade profunda sobre a relação/história
+- Clímax emocional da música
 
 [Refrão Final]
-(refrão com variação final)
+- Versão mais poderosa
+- Resolução emocional satisfatória
 
-Crie uma letra que faça a pessoa se emocionar e se identificar com a história!`;
+=== QUALIDADE TÉCNICA ===
+- DICÇÃO PERFEITA: Palavras fáceis de cantar
+- MÉTRICA CONSISTENTE: Flui naturalmente no ritmo
+- RIMAS INTELIGENTES: Não forçadas, naturais
+- PORTUGUÊS BRASILEIRO: Claro, sem estrangeirismos desnecessários
+- PROGRESSÃO LÓGICA: Cada verso leva ao próximo
+
+=== ELEMENTOS POÉTICOS ===
+- METÁFORAS VISUAIS: Imagens que o ouvinte consegue "ver"
+- ALITERAÇÕES SUTIS: Sons que fluem bem
+- CAMPO SEMÂNTICO: Palavras que se conectam tematicamente
+- SIMBOLISMO: Objetos/lugares que representam emoções
+
+=== VALIDAÇÃO FINAL ===
+Antes de entregar, verifique:
+1. A letra conta UMA história específica?
+2. Cada verso avança a narrativa?
+3. O refrão é memorável e específico?
+4. Remove introduções genéricas?
+5. Conecta emocionalmente com quem vai ouvir?
+6. Tem detalhes únicos desta história?
+
+Crie uma letra que faça a pessoa CHORAR de emoção e pensar "essa música é sobre a MINHA vida!"
+
+RESPONDA APENAS COM A LETRA FINAL:`;
 
   try {
     console.log("[Gemini] Enhancing lyrics with context:", {
@@ -205,6 +247,115 @@ Uma história de emoção`;
       improved: false,
     };
   }
+}
+
+/**
+ * Validate lyrics to ensure quality and remove generic introductions
+ */
+function validateLyrics(lyrics: string, context: string): { isValid: boolean; issues: string[]; cleanedLyrics: string } {
+  const issues: string[] = [];
+  let cleanedLyrics = lyrics;
+
+  // Check for generic introductions that should never appear
+  const genericPhrases = [
+    /uma música forte e empolgante/gi,
+    /uma história de amor cantada em/gi,
+    /esta é uma canção sobre/gi,
+    /vamos contar a história de/gi,
+    /esta música fala sobre/gi,
+    /aqui temos uma canção/gi,
+    /apresentamos uma música/gi,
+    /esta é a história de/gi
+  ];
+
+  genericPhrases.forEach(pattern => {
+    if (pattern.test(lyrics)) {
+      issues.push('Contains generic introduction phrases');
+      cleanedLyrics = cleanedLyrics.replace(pattern, '');
+    }
+  });
+
+  // Remove empty lines at the beginning
+  cleanedLyrics = cleanedLyrics.replace(/^\s*\n+/, '');
+
+  // Check if lyrics are too short
+  if (cleanedLyrics.length < 200) {
+    issues.push('Lyrics too short, need more content');
+  }
+
+  // Check if has proper structure
+  const hasVerse = /\[Verso/i.test(cleanedLyrics);
+  const hasChorus = /\[Refrão/i.test(cleanedLyrics);
+  
+  if (!hasVerse || !hasChorus) {
+    issues.push('Missing essential song structure (Verso/Refrão)');
+  }
+
+  // Check if contains context elements
+  const contextWords = context.toLowerCase().split(' ').filter(word => word.length > 3);
+  const lyricsLower = cleanedLyrics.toLowerCase();
+  const contextMatches = contextWords.some(word => lyricsLower.includes(word));
+  
+  if (!contextMatches && contextWords.length > 0) {
+    issues.push('Lyrics dont connect with the provided story context');
+  }
+
+  return {
+    isValid: issues.length === 0,
+    issues,
+    cleanedLyrics: cleanedLyrics.trim()
+  };
+}
+
+/**
+ * Generate and validate lyrics with multiple attempts
+ */
+export async function generateValidatedLyrics(options: LyricsEnhancementOptions): Promise<EnhancedLyrics> {
+  const maxAttempts = 3;
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      console.log(`[Gemini] Generating lyrics attempt ${attempt}/${maxAttempts}`);
+      
+      const result = await enhanceLyrics(options);
+      
+      // Validate the generated lyrics
+      const validation = validateLyrics(result.lyrics, options.story);
+      
+      if (validation.isValid) {
+        console.log(`[Gemini] Lyrics validated successfully on attempt ${attempt}`);
+        return {
+          ...result,
+          lyrics: validation.cleanedLyrics,
+          improved: true
+        };
+      } else {
+        console.warn(`[Gemini] Lyrics validation failed on attempt ${attempt}:`, validation.issues);
+        
+        if (attempt === maxAttempts) {
+          // Last attempt - return cleaned version even if not perfect
+          return {
+            ...result,
+            lyrics: validation.cleanedLyrics,
+            improved: true
+          };
+        }
+        
+        // Try again with more specific instructions
+        options = {
+          ...options,
+          originalLyrics: validation.cleanedLyrics + `\n\n[PREVIOUS ISSUES TO FIX: ${validation.issues.join(', ')}]`
+        };
+      }
+    } catch (error) {
+      console.error(`[Gemini] Attempt ${attempt} failed:`, error);
+      lastError = error as Error;
+    }
+  }
+
+  // All attempts failed, return fallback
+  throw lastError || new Error('Failed to generate valid lyrics after multiple attempts');
 }
 
 /**

@@ -192,7 +192,7 @@ export default function Create() {
                 <div className="flex items-start gap-3">
                   <Checkbox
                     id="terms"
-                    checked={agreedToTerms}
+                    checked={agreedToTerms || false}
                     onCheckedChange={(checked) => setValue("agreedToTerms", checked === true)}
                     className="mt-1"
                   />

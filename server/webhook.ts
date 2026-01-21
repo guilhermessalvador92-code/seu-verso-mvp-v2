@@ -232,11 +232,14 @@ export async function handleSunoCallback(req: Request, res: Response) {
 
       try {
         // Criar registro de música
+        // NOTA: Suno não retorna lyrics separado, então usamos prompt como descrição/letra
         const songData = {
           id: nanoid(),
           jobId: jobId,
           title: title || "Untitled",
-          lyrics: prompt || "",
+          // Prompt é a melhor informação que temos sobre o que foi gerado
+          // Idealmente seria lyrics real da música, mas Suno não retorna isso
+          lyrics: prompt || "Música gerada via Suno",
           audioUrl: audio_url,
           imageUrl: image_url,
           duration: duration || 0,
@@ -386,11 +389,11 @@ export async function webhookTest(req: Request, res: Response) {
           data: [
             {
               id: nanoid(),
-              audio_url: "https://cdn.suno.ai/test-music.mp3",
-              image_url: "https://cdn.suno.ai/test-cover.jpg",
-              prompt: "[Verse] Teste de Música\n[Chorus] Fluxo de Status",
-              title: `Música de Teste - ${new Date().toLocaleTimeString()}`,
-              tags: "test, webhook, status-page",
+              audio_url: "https://cdn1.suno.ai/6a01e748-243c-4e15-aa4d-dbe514febe88.mp3", // Real Suno URL para teste
+              image_url: "https://cdn2.suno.ai/image_6a01e748.jpeg",
+              prompt: "Uma música alegre celebrando amizade", // Prompt original
+              title: `Música para Guilherme - ${new Date().toLocaleTimeString()}`,
+              tags: "celebração, amizade, teste",
               model_name: "chirp-v3-5",
               duration: 180,
               createTime: new Date().toISOString(),

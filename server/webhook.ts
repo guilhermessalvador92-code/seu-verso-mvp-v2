@@ -334,15 +334,75 @@ export async function webhookHealthCheck(req: Request, res: Response) {
 
 /**
  * Test endpoint para simular callback da Suno
+ * 
+ * Uso:
+ * POST /api/webhook/test
+ * POST /api/webhook/test?jobId=xyz  (para correlacionar com job específico)
  */
 export async function webhookTest(req: Request, res: Response) {
-  // Simular callback de sucesso
+  const jobIdParam = typeof req.query === 'object' ? req.query.jobId as string : undefined;
+  
+  // Se jobId foi fornecido, simular com dados reais daquele job
+  if (jobIdParam) {
+    try {
+      const job = await getJobById(jobIdParam);
+      if (!job) {
+        return res.status(404).json({
+          success: false,
+          error: "Job not found",
+        });
+      }
+
+      console.log("[Webhook Test] Simulating callback for job:", jobIdParam);
+
+      // Se job tem sunoTaskId, usar esse
+      const sunoTaskId = job.sunoTaskId || `test-${nanoid(8)}`;
+
+      // Simular callback com dados reais
+      const mockCallback: SunoCallbackRequest = {
+        code: 200,
+        msg: "All generated successfully.",
+        data: {
+          callbackType: "complete",
+          task_id: sunoTaskId,
+          data: [
+            {
+              id: nanoid(),
+              audio_url: "https://cdn.suno.ai/test-music.mp3",
+              image_url: "https://cdn.suno.ai/test-cover.jpg",
+              prompt: "[Verse] Teste de Música\n[Chorus] Fluxo de Status",
+              title: `Música de Teste - ${new Date().toLocaleTimeString()}`,
+              tags: "test, webhook, status-page",
+              model_name: "chirp-v3-5",
+              duration: 180,
+              createTime: new Date().toISOString(),
+            },
+          ],
+        },
+      };
+
+      // Chamar handler
+      await handleSunoCallback(
+        { body: mockCallback } as Request,
+        res
+      );
+      return;
+    } catch (error) {
+      console.error("[Webhook Test] Error:", error);
+      return res.status(500).json({
+        success: false,
+        error: String(error),
+      });
+    }
+  }
+
+  // Fallback: simular callback genérico
   const mockCallback: SunoCallbackRequest = {
     code: 200,
     msg: "All generated successfully.",
     data: {
       callbackType: "complete",
-      task_id: req.body?.task_id || "test-task-123",
+      task_id: req.body?.task_id || `test-${nanoid(8)}`,
       data: [
         {
           id: "music-id-123",

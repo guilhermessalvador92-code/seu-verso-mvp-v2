@@ -271,6 +271,26 @@ export default function Status() {
                   <Loader2 className="w-4 h-4 mr-2" />
                   Atualizar Agora
                 </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs"
+                  onClick={async () => {
+                    try {
+                      const response = await fetch(`/api/webhook/test?jobId=${jobId}`, {
+                        method: "POST",
+                      });
+                      if (response.ok) {
+                        console.log("[Status] Webhook test triggered, refetching...");
+                        setTimeout(() => refetch(), 1000);
+                      }
+                    } catch (error) {
+                      console.error("[Status] Webhook test failed:", error);
+                    }
+                  }}
+                >
+                  🧪 Simular Webhook (Dev)
+                </Button>
                 {status?.song?.shareSlug ? (
                   <Button
                     className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"

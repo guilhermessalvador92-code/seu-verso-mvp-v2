@@ -48,6 +48,21 @@ export interface SunoTaskDetails {
 
 const SUNO_API_BASE = "https://api.sunoapi.org";
 
+const USE_SUNO_COVER = process.env.USE_SUNO_COVER_ENDPOINT !== "false"; // default ON per user request
+
+export interface SunoCoverGenerateRequest {
+  taskId: string;
+  callBackUrl: string;
+}
+
+export interface SunoCoverGenerateResponse {
+  code: number;
+  msg: string;
+  data?: {
+    taskId: string;
+  };
+}
+
 import { nanoid } from "nanoid";
 
 export async function generateMusicWithSuno(
@@ -82,6 +97,27 @@ export async function generateMusicWithSuno(
   if (!SUNO_API_KEY) {
     console.error("[Suno] API Key not configured");
     return null;
+  }
+
+  // Novo fluxo: usar endpoint de capa para evitar consumo de créditos de música
+  if (USE_SUNO_COVER) {
+    try {
+      const coverTaskId = await generateCoverWithSuno(jobId, callbackUrl, SUNO_API_KEY);
+
+      if (coverTaskId) {
+        try {
+          const { updateJobSunoTaskId } = await import("./db");
+          await updateJobSunoTaskId(jobId, coverTaskId);
+        } catch (error) {
+          console.error("[Suno] Failed to store cover task id:", error);
+        }
+      }
+
+      return coverTaskId;
+    } catch (error) {
+      console.error("[Suno] Error generating cover:", error);
+      return null;
+    }
   }
 
   try {
@@ -155,6 +191,36 @@ export async function generateMusicWithSuno(
     console.error("[Suno] Error generating music:", error);
     return null;
   }
+}
+
+async function generateCoverWithSuno(jobId: string, callbackUrl: string, apiKey: string): Promise<string | null> {
+  const payload: SunoCoverGenerateRequest = {
+    taskId: jobId, // usamos o jobId como referência única para não consumir taskId real de música
+    callBackUrl: callbackUrl,
+  };
+
+  console.log("[Suno] Sending request to generate COVER", { jobId, callbackUrl });
+
+  const response = await fetch(`${SUNO_API_BASE}/api/v1/suno/cover/generate`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const data: SunoCoverGenerateResponse = await response.json();
+
+  if (data.code !== 200 && data.code !== 400) {
+    console.error("[Suno] Cover generation failed", { code: data.code, msg: data.msg });
+    return null;
+  }
+
+  // 400 pode significar cover já gerada: retorna taskId existente
+  const taskId = data.data?.taskId;
+  console.log("[Suno] Cover generation started", { taskId, jobId, code: data.code, msg: data.msg });
+  return taskId || null;
 }
 
 export async function getSunoTaskDetails(taskId: string): Promise<SunoTaskDetails | null> {

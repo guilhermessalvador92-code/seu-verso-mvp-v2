@@ -9,6 +9,7 @@ import { CreateJobPayload, JobStatusResponse, CallbackPayload, MUSIC_STYLES, MOO
 import { generateMusicWithSuno } from "./suno";
 import { queueOrderConfirmationEmail } from "./email-queue-integration";
 import { addJobToPolling } from "./suno-polling";
+import { enhanceLyrics } from "./_core/gemini";
 
 export const appRouter = router({
   system: systemRouter,
@@ -268,6 +269,56 @@ export const appRouter = router({
         return { success: true };
       }),
   }),
-});
+
+    ai: router({
+      enhanceLyrics: publicProcedure
+        .input(
+          z.object({
+            story: z.string(),
+            style: z.string(),
+            title: z.string(),
+            occasion: z.string().optional(),
+            mood: z.string().optional(),
+            originalLyrics: z.string().optional(),
+          })
+        )
+        .mutation(async ({ input }) => {
+          try {
+            const result = await enhanceLyrics({
+              story: input.story,
+              style: input.style,
+              title: input.title,
+              occasion: input.occasion,
+              mood: input.mood,
+              originalLyrics: input.originalLyrics,
+            });
+            return { success: true, data: result };
+          } catch (error) {
+            console.error("[AI] Lyrics enhancement failed:", error);
+            return {
+              success: false,
+              error: "Failed to enhance lyrics",
+              fallback: input.originalLyrics || "Lyrics enhancement unavailable",
+            };
+          }
+        }),
+
+      testConnection: publicProcedure.query(async () => {
+        const { testGeminiConnection } = await import("./_core/gemini");
+        try {
+          const isConnected = await testGeminiConnection();
+          return {
+            success: isConnected,
+            message: isConnected ? "Gemini API connected" : "Gemini API not available",
+          };
+        } catch (error) {
+          return {
+            success: false,
+            message: "Gemini API connection failed",
+          };
+        }
+      }),
+    }),
+  });
 
 export type AppRouter = typeof appRouter;

@@ -78,8 +78,15 @@ export default function Create() {
 
         <Card className="border-slate-200 shadow-lg">
           <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 border-b border-slate-200">
-            <CardTitle>Dados da Música</CardTitle>
-            <CardDescription>Compartilhe a história e preferências musicais</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Dados da Música</CardTitle>
+                <CardDescription>Compartilhe a história e preferências musicais</CardDescription>
+              </div>
+              <div className="flex items-center gap-2 px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
+                ✨ AI Gemini Ativo
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="pt-6">
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">

@@ -8,6 +8,7 @@ import Home from "./pages/Home";
 import Create from "./pages/Create";
 import Status from "./pages/Status";
 import Music from "./pages/Music";
+import GeminiTest from "./pages/GeminiTest";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 
@@ -18,6 +19,7 @@ function Router() {
       <Route path={"/create"} component={Create} />
       <Route path={"/status/:jobId"} component={Status} />
       <Route path={"/m/:slug"} component={Music} />
+      <Route path={"/gemini-test"} component={GeminiTest} />
       <Route path={"/termos"} component={Terms} />
       <Route path={"/privacidade"} component={Privacy} />
       <Route path={"/404"} component={NotFound} />

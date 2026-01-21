@@ -333,8 +333,32 @@ export async function handleSunoCallback(req: Request, res: Response) {
         const shareSlug = nanoid(16);
 
         try {
-          // Extrair e formatar lyrics
-          const songLyrics = extractAndFormatLyrics(lyrics, gpt_description_prompt, prompt);
+          // Extrair e formatar lyrics básicas
+          let songLyrics = extractAndFormatLyrics(lyrics, gpt_description_prompt, prompt);
+          
+          // Tentar aprimorar com Gemini API se disponível
+          try {
+            const lead = await getLeadByJobId(jobId);
+            if (lead && lead.story && lead.style) {
+              console.log(`[Webhook] Enhancing lyrics for song ${i + 1} with Gemini...`);
+              const enhanced = await enhanceLyrics({
+                story: lead.story,
+                style: lead.style,
+                title: title,
+                occasion: lead.occasion,
+                mood: lead.mood,
+                originalLyrics: songLyrics,
+              });
+              
+              if (enhanced.improved) {
+                songLyrics = enhanced.lyrics;
+                console.log(`[Webhook] Lyrics enhanced successfully for song ${i + 1}`);
+              }
+            }
+          } catch (geminiError) {
+            console.warn(`[Webhook] Gemini enhancement failed for song ${i + 1}:`, geminiError);
+            // Continue with original lyrics if Gemini fails
+          }
           
           const songData = {
             id: nanoid(),

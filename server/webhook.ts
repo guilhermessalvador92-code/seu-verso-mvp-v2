@@ -28,6 +28,7 @@ import { Request, Response } from "express";
 import { getJobById, getJobBySunoTaskId, updateJobStatus, createSong, getLeadByJobId } from "./db";
 import { queueMusicReadyEmail } from "./email-queue-integration";
 import { nanoid } from "nanoid";
+import { getSunoTaskDetails } from "./suno";
 
 /**
  * Estrutura do callback da Suno API
@@ -54,6 +55,8 @@ export interface SunoMusicData {
   model_name: string;
   title: string;
   tags: string;
+  lyrics?: string;  // Lyrics pode vir no callback
+  gpt_description_prompt?: string;
   createTime: string;
   duration: number;
 }
@@ -201,6 +204,8 @@ export async function handleSunoCallback(req: Request, res: Response) {
         tags,
         duration,
         model_name,
+        lyrics,  // Capture lyrics if provided by Suno
+        gpt_description_prompt,
       } = firstMusic;
 
       // Validar dados obrigatórios
@@ -232,14 +237,28 @@ export async function handleSunoCallback(req: Request, res: Response) {
 
       try {
         // Criar registro de música
-        // NOTA: Suno não retorna lyrics separado, então usamos prompt como descrição/letra
+        // Preferência: lyrics > gpt_description_prompt > prompt
+        let songLyrics = lyrics || gpt_description_prompt || prompt || "Música gerada via Suno";
+        
+        // Se não temos lyrics, tentar buscar detalhes completos da Suno API
+        if (!lyrics && !gpt_description_prompt) {
+          console.log("[Webhook] Attempting to fetch full task details from Suno API for lyrics...");
+          try {
+            const taskDetails = await getSunoTaskDetails(task_id);
+            if (taskDetails?.data?.lyrics) {
+              songLyrics = taskDetails.data.lyrics;
+              console.log("[Webhook] Successfully fetched lyrics from Suno API");
+            }
+          } catch (error) {
+            console.log("[Webhook] Could not fetch additional lyrics from Suno API, using prompt as fallback");
+          }
+        }
+        
         const songData = {
           id: nanoid(),
           jobId: jobId,
           title: title || "Untitled",
-          // Prompt é a melhor informação que temos sobre o que foi gerado
-          // Idealmente seria lyrics real da música, mas Suno não retorna isso
-          lyrics: prompt || "Música gerada via Suno",
+          lyrics: songLyrics,
           audioUrl: audio_url,
           imageUrl: image_url,
           duration: duration || 0,
@@ -249,7 +268,15 @@ export async function handleSunoCallback(req: Request, res: Response) {
           createdAt: new Date(),
         };
 
-        console.log("[Webhook] Creating song with data:", songData);
+        console.log("[Webhook] Creating song with data:", {
+          jobId,
+          title: songData.title,
+          hasLyrics: !!lyrics,
+          hasDescription: !!gpt_description_prompt,
+          lyricsLength: songLyrics.length,
+          audioUrl: audio_url,
+        });
+        
         const song = await createSong(songData);
 
         console.log("[Webhook] Song created result:", {
@@ -258,6 +285,7 @@ export async function handleSunoCallback(req: Request, res: Response) {
           shareSlug: song?.shareSlug,
           title: song?.title,
           audioUrl: song?.audioUrl,
+          lyricsLength: song?.lyrics?.length,
           duration,
         });
 
@@ -389,14 +417,17 @@ export async function webhookTest(req: Request, res: Response) {
           data: [
             {
               id: nanoid(),
-              audio_url: "https://cdn1.suno.ai/6a01e748-243c-4e15-aa4d-dbe514febe88.mp3", // Real Suno URL para teste
+              audio_url: "https://cdn1.suno.ai/6a01e748-243c-4e15-aa4d-dbe514febe88.mp3",
               image_url: "https://cdn2.suno.ai/image_6a01e748.jpeg",
-              prompt: "Uma música alegre celebrando amizade", // Prompt original
+              prompt: "Uma música alegre celebrando amizade",
               title: `Música para Guilherme - ${new Date().toLocaleTimeString()}`,
               tags: "celebração, amizade, teste",
               model_name: "chirp-v3-5",
               duration: 180,
               createTime: new Date().toISOString(),
+              // Include mock lyrics for testing
+              lyrics: `[Verse 1]\nGuilherme, amigo do coração\nSua amizade é uma benção\nTodos os dias mais feliz\nCom você nessa missão\n\n[Chorus]\nVocê é especial demais\nSua alegria nos traz paz\nGuilherme, você é nosso herói\nSempre junto em tudo que nos faz feliz`,
+              gpt_description_prompt: "Uma celebração da amizade e da felicidade compartilhada"
             },
           ],
         },

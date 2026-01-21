@@ -16,6 +16,7 @@ export default function Status() {
   const [isFailed, setIsFailed] = useState(false);
   const [lastCheck, setLastCheck] = useState<Date | null>(null);
   const [song, setSong] = useState<any>(null);
+  const [songs, setSongs] = useState<any[]>([]);
   const [isDownloading, setIsDownloading] = useState(false);
   const [enablePolling, setEnablePolling] = useState(true);
 
@@ -42,8 +43,14 @@ export default function Status() {
       timestamp: new Date().toLocaleTimeString(),
     });
 
-    if (status.status === "DONE" && status.song) {
-      setSong(status.song);
+    if (status.status === "DONE" && (status.song || status.songs)) {
+      if (status.songs && status.songs.length > 0) {
+        setSongs(status.songs);
+        setSong(status.songs[0]); // For compatibility
+      } else if (status.song) {
+        setSong(status.song);
+        setSongs([status.song]); // Wrap single song in array
+      }
       setIsReady(true);
       setEnablePolling(false);
       setCurrentStep(JOB_STEPS.length - 1);
@@ -127,7 +134,7 @@ export default function Status() {
     );
   }
 
-  if (isReady && song) {
+  if (isReady && songs.length > 0) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-12">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -136,64 +143,116 @@ export default function Status() {
               <div className="flex items-center gap-3 mb-4">
                 <CheckCircle className="w-8 h-8 text-green-600" />
                 <div>
-                  <CardTitle className="text-2xl">Sua Música Está Pronta!</CardTitle>
+                  <CardTitle className="text-2xl">
+                    Sua{songs.length > 1 ? 's' : ''} Música{songs.length > 1 ? 's' : ''} Está{songs.length > 1 ? 'ão' : ''} Pronta{songs.length > 1 ? 's' : ''}!
+                  </CardTitle>
                   <CardDescription>Parabéns! 🎉</CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="pt-6">
               <div className="space-y-6">
-                <div>
-                  <h3 className="font-semibold text-slate-900 mb-2">Título</h3>
-                  <p className="text-slate-700">{song.title}</p>
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <h3 className="font-semibold text-green-800">Música{songs.length > 1 ? 's' : ''} Criada{songs.length > 1 ? 's' : ''}!</h3>
+                  </div>
+                  <p className="text-green-700 text-sm">
+                    {songs.length > 1 
+                      ? `${songs.length} versões da sua música foram geradas com sucesso!`
+                      : "Sua música foi gerada com sucesso!"
+                    }
+                  </p>
                 </div>
 
-                {song.audioUrl && (
-                  <div>
-                    <h3 className="font-semibold text-slate-900 mb-2">Ouvir</h3>
-                    <audio controls className="w-full" src={song.audioUrl}>
-                      Seu navegador não suporta o elemento de áudio.
-                    </audio>
-                  </div>
-                )}
-
-                {song.lyrics && (
-                  <div>
-                    <h3 className="font-semibold text-slate-900 mb-2">Letra</h3>
-                    <div className="bg-slate-50 rounded-lg p-4 max-h-64 overflow-y-auto">
-                      <p className="text-slate-700 whitespace-pre-wrap font-mono text-sm">
-                        {song.lyrics}
-                      </p>
+                {songs.map((currentSong, index) => (
+                  <div key={index} className="border border-slate-200 rounded-lg p-4 space-y-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Music className="w-5 h-5 text-purple-600" />
+                      <h3 className="font-semibold text-slate-900">
+                        {currentSong.title}{songs.length > 1 ? ` (Versão ${index + 1})` : ''}
+                      </h3>
                     </div>
+
+                    {currentSong.audioUrl && (
+                      <div>
+                        <h4 className="font-medium text-slate-900 mb-2">Ouvir</h4>
+                        <audio 
+                          controls 
+                          className="w-full mb-4" 
+                          preload="metadata"
+                          onError={(e) => {
+                            console.error('Erro no audio:', e);
+                            console.log('URL do audio:', currentSong.audioUrl);
+                          }}
+                        >
+                          <source src={currentSong.audioUrl} type="audio/mpeg" />
+                          Seu navegador não suporta o elemento de áudio.
+                        </audio>
+                        
+                        {/* Botão de Download Grande */}
+                        <Button
+                          size="lg"
+                          className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+                          onClick={() => {
+                            const link = document.createElement("a");
+                            link.href = currentSong.audioUrl;
+                            link.download = `${currentSong.title}${songs.length > 1 ? ` - Versao ${index + 1}` : ''}.mp3`;
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                          }}
+                        >
+                          <Download className="w-5 h-5 mr-2" />
+                          Baixar Esta Música
+                        </Button>
+                      </div>
+                    )}
+
+                    {currentSong.lyrics && (
+                      <div>
+                        <h4 className="font-medium text-slate-900 mb-2">Letra</h4>
+                        <div className="bg-slate-50 rounded-lg p-4 max-h-64 overflow-y-auto">
+                          <p className="text-slate-700 whitespace-pre-wrap font-mono text-sm">
+                            {currentSong.lyrics}
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
+                ))}
 
                 <div className="flex flex-col sm:flex-row gap-4">
                   <Button
                     size="lg"
                     className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"
                     onClick={() => song.shareSlug && setLocation(`/m/${song.shareSlug}`)}
-                    disabled={!song.shareSlug}
+                    disabled={!song?.shareSlug}
                   >
                     <Music className="w-4 h-4 mr-2" />
                     Ver Página de Compartilhamento
                   </Button>
-                  {song.audioUrl && (
+                  
+                  {songs.length > 1 && (
                     <Button
                       size="lg"
                       variant="outline"
                       className="flex-1"
                       onClick={() => {
-                        const link = document.createElement("a");
-                        link.href = song.audioUrl;
-                        link.download = `${song.title}.mp3`;
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
+                        songs.forEach((currentSong, index) => {
+                          setTimeout(() => {
+                            const link = document.createElement("a");
+                            link.href = currentSong.audioUrl;
+                            link.download = `${currentSong.title} - Versao ${index + 1}.mp3`;
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                          }, index * 500);
+                        });
                       }}
                     >
                       <Download className="w-4 h-4 mr-2" />
-                      Baixar Música
+                      Baixar Todas ({songs.length})
                     </Button>
                   )}
                 </div>

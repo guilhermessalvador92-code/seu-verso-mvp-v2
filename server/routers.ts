@@ -4,7 +4,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import { nanoid } from "nanoid";
-import { createJob, getJobById, updateJobStatus, updateJobSunoTaskId, createSong, getSongByJobId, getSongBySlug, createLead, incrementDownloadCount } from "./db";
+import { createJob, getJobById, updateJobStatus, updateJobSunoTaskId, createSong, getSongsByJobId, getSongBySlug, createLead, incrementDownloadCount } from "./db";
 import { CreateJobPayload, JobStatusResponse, CallbackPayload, MUSIC_STYLES, MOODS } from "@shared/types";
 import { generateMusicWithSuno } from "./suno";
 import { queueOrderConfirmationEmail } from "./email-queue-integration";
@@ -29,7 +29,7 @@ export const appRouter = router({
         z.object({
           story: z.string().min(10, "História deve ter pelo menos 10 caracteres"),
           style: z.enum(MUSIC_STYLES as unknown as [string, ...string[]]),
-          names: z.string().min(1, "Nome(s) do(s) homenageado(s) é obrigatório"),
+          title: z.string().min(1, "Título da música é obrigatório"),
           occasion: z.string().optional(),
           mood: z.enum(MOODS as unknown as [string, ...string[]]).optional(),
           email: z.string().email("Email inválido"),
@@ -53,7 +53,7 @@ export const appRouter = router({
             jobId,
             email: input.email,
             style: input.style,
-            names: input.names,
+            names: input.title, // Using title as the main identifier
             occasion: input.occasion,
             story: input.story,
             mood: input.mood,
@@ -62,7 +62,7 @@ export const appRouter = router({
 
           // Enfileirar email de confirmação com retry
           if (lead) {
-            queueOrderConfirmationEmail(input.email, jobId, input.names).catch(error => {
+            queueOrderConfirmationEmail(input.email, jobId, input.title).catch(error => {
               console.error("[Jobs] Failed to queue confirmation email:", error);
             });
           }
@@ -76,7 +76,7 @@ export const appRouter = router({
             jobId,
             input.story,
             input.style,
-            input.names,
+            input.title,
             input.occasion,
             input.mood,
             callbackUrl
@@ -118,22 +118,29 @@ export const appRouter = router({
         });
 
         if (job.status === "DONE") {
-          const song = await getSongByJobId(input.jobId);
-          console.log("[Router] Song lookup result:", {
-            found: !!song,
-            songId: song?.id,
-            title: song?.title,
-            shareSlug: song?.shareSlug,
+          const songs = await getSongsByJobId(input.jobId);
+          console.log("[Router] Songs lookup result:", {
+            songsCount: songs.length,
+            titles: songs.map(s => s.title),
           });
 
-          if (song) {
+          if (songs.length > 0) {
             return {
               status: "DONE",
-              song: {
+              songs: songs.map(song => ({
                 shareSlug: song.shareSlug || "",
                 audioUrl: song.audioUrl || "",
                 lyrics: song.lyrics || "",
                 title: song.title || "",
+                duration: song.duration || 0,
+                id: song.id,
+              })),
+              // Keep first song as main song for compatibility
+              song: {
+                shareSlug: songs[0].shareSlug || "",
+                audioUrl: songs[0].audioUrl || "",
+                lyrics: songs[0].lyrics || "",
+                title: songs[0].title || "",
               },
             };
           }

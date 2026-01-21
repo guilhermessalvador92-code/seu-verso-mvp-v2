@@ -190,6 +190,16 @@ export async function getSongByJobId(jobId: string): Promise<Song | undefined> {
   return result.length > 0 ? result[0] : undefined;
 }
 
+export async function getSongsByJobId(jobId: string): Promise<Song[]> {
+  const db = await getDb();
+  if (!db) {
+    const found = _mockSongs.filter((s) => s.jobId === jobId);
+    return found as Song[];
+  }
+  const result = await db.select().from(songs).where(eq(songs.jobId, jobId));
+  return result;
+}
+
 export async function getSongBySlug(slug: string): Promise<Song | undefined> {
   const db = await getDb();
   if (!db) {

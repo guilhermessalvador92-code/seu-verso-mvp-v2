@@ -285,127 +285,125 @@ export async function handleSunoCallback(req: Request, res: Response) {
 
     // Processar sucesso
     if (callbackType === "complete" || callbackType === "first") {
-      if (!musicData || !Array.isArray(musicData) || musicData.length === 0) {
-        console.error("[Webhook] No music data in callback");
-        return res.status(400).json({
-          success: false,
-          error: "No music data provided",
-        });
-      }
-
-      // Processar primeira música do array
-      const firstMusic = musicData[0];
-      if (!firstMusic) {
-        return res.status(400).json({
-          success: false,
-          error: "Music data is empty",
-        });
-      }
-
-      const {
-        audio_url,
-        image_url,
-        prompt,
-        title,
-        tags,
-        duration,
-        model_name,
-        lyrics,  // Capture lyrics if provided by Suno
-        gpt_description_prompt,
-      } = firstMusic;
-
-      // Validar dados obrigatórios
-      if (!audio_url || !title) {
-        console.error("[Webhook] Missing required fields:", {
-          audio_url: !!audio_url,
-          title: !!title,
-        });
-        return res.status(400).json({
-          success: false,
-          error: "Missing required fields (audio_url, title)",
-        });
-      }
-
-      // Recuperar jobId pelo sunoTaskId
-      const job = await getJobBySunoTaskId(task_id);
-      if (!job) {
-        console.error("[Webhook] No job found for Suno task_id:", task_id);
-        return res.status(404).json({
-          success: false,
-          error: `Job not found for task_id: ${task_id}`,
-        });
-      }
-
-      const jobId = job.id;
-
-      // Gerar slug único para compartilhamento
-      const shareSlug = nanoid(16);
-
       try {
-        // Criar registro de música
-        // Preferência: lyrics > gpt_description_prompt > prompt
-        const songLyrics = extractAndFormatLyrics(lyrics, gpt_description_prompt, prompt);
-        
-        const songData = {
-          id: nanoid(),
-          jobId: jobId,
-          title: title || "Untitled",
-          lyrics: songLyrics,
-          audioUrl: audio_url,
-          imageUrl: image_url,
-          duration: duration || 0,
-          tags: tags || "",
-          modelName: model_name || "chirp-v3-5",
-          shareSlug,
-          createdAt: new Date(),
-        };
-
-        console.log("[Webhook] Creating song with data:", {
-          jobId,
-          title: songData.title,
-          hasLyrics: !!lyrics,
-          hasDescription: !!gpt_description_prompt,
-          lyricsLength: songLyrics.length,
-          audioUrl: audio_url,
-        });
-        
-        const song = await createSong(songData);
-
-        console.log("[Webhook] Song created result:", {
-          jobId: jobId,
-          songId: song?.id,
-          shareSlug: song?.shareSlug,
-          title: song?.title,
-          audioUrl: song?.audioUrl,
-          lyricsLength: song?.lyrics?.length,
-          duration,
-        });
-
-        // Atualizar job status para DONE
-        await updateJobStatus(jobId, "DONE");
-        console.log("[Webhook] Job marked as DONE:", jobId);
-
-        // Obter lead para enviar email
-        const lead = await getLeadByJobId(jobId);
-        if (lead && lead.email) {
-          console.log("[Webhook] Queuing music ready email for:", lead.email);
-          queueMusicReadyEmail(lead.email, jobId, shareSlug, title).catch(
-            (error) => {
-              console.error("[Webhook] Failed to queue email:", error);
-            }
-          );
+        if (!musicData || !Array.isArray(musicData) || musicData.length === 0) {
+          console.error("[Webhook] No music data in callback");
+          return res.status(400).json({
+            success: false,
+            error: "No music data provided",
+          });
         }
 
-        // Retornar sucesso
-        return res.status(200).json({
-          success: true,
-          message: "Music processed successfully",
-          data: {
+        // Recuperar jobId pelo sunoTaskId
+        const job = await getJobBySunoTaskId(task_id);
+        if (!job) {
+          console.error("[Webhook] No job found for Suno task_id:", task_id);
+          return res.status(404).json({
+            success: false,
+            error: `Job not found for task_id: ${task_id}`,
+          });
+        }
+
+      const jobId = job.id;
+      const createdSongs = [];
+
+      // Processar todas as músicas do array
+      for (let i = 0; i < musicData.length; i++) {
+        const music = musicData[i];
+        
+        const {
+          audio_url,
+          image_url,
+          prompt,
+          title,
+          tags,
+          duration,
+          model_name,
+          lyrics,
+          gpt_description_prompt,
+        } = music;
+
+        // Validar dados obrigatórios
+        if (!audio_url || !title) {
+          console.warn(`[Webhook] Skipping music ${i}: missing required fields`);
+          continue;
+        }
+
+        // Gerar slug único para cada música
+        const shareSlug = nanoid(16);
+
+        try {
+          // Extrair e formatar lyrics
+          const songLyrics = extractAndFormatLyrics(lyrics, gpt_description_prompt, prompt);
+          
+          const songData = {
+            id: nanoid(),
             jobId: jobId,
+            title: `${title}${musicData.length > 1 ? ` (Versão ${i + 1})` : ''}`,
+            lyrics: songLyrics,
+            audioUrl: audio_url,
+            imageUrl: image_url,
+            duration: duration || 0,
+            tags: tags || "",
+            modelName: model_name || "chirp-v3-5",
             shareSlug,
-            musicUrl: `/m/${shareSlug}`,
-          },
+            createdAt: new Date(),
+          };
+
+          const song = await createSong(songData);
+          if (song) {
+            createdSongs.push(song);
+            console.log(`[Webhook] Created song ${i + 1}/${musicData.length}:`, {
+              songId: song.id,
+              title: song.title,
+              shareSlug: song.shareSlug,
+              duration: song.duration,
+            });
+          }
+        } catch (error) {
+          console.error(`[Webhook] Error creating song ${i}:`, error);
+        }
+      }
+
+      if (createdSongs.length === 0) {
+        console.error("[Webhook] No songs could be created");
+        await updateJobStatus(jobId, "FAILED");
+        return res.status(500).json({
+          success: false,
+          error: "Failed to create any songs",
         });
+      }
+
+      // Atualizar job status para DONE
+      await updateJobStatus(jobId, "DONE");
+      console.log(`[Webhook] Job marked as DONE with ${createdSongs.length} songs:`, jobId);
+
+      // Obter lead para enviar email (usando a primeira música criada)
+      const firstSong = createdSongs[0];
+      const lead = await getLeadByJobId(jobId);
+      if (lead && lead.email && firstSong) {
+        console.log("[Webhook] Queuing music ready email for:", lead.email);
+        queueMusicReadyEmail(lead.email, jobId, firstSong.shareSlug, firstSong.title).catch(
+          (error) => {
+            console.error("[Webhook] Failed to queue email:", error);
+          }
+        );
+      }
+
+      // Retornar sucesso
+      return res.status(200).json({
+        success: true,
+        message: `${createdSongs.length} music(s) processed successfully`,
+        data: {
+          jobId: jobId,
+          songsCreated: createdSongs.length,
+          songs: createdSongs.map(song => ({
+            shareSlug: song.shareSlug,
+            title: song.title,
+            musicUrl: `/m/${song.shareSlug}`,
+          })),
+        },
+      });
       } catch (error) {
         console.error("[Webhook] Error processing music:", error);
         

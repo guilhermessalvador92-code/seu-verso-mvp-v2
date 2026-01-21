@@ -23,7 +23,7 @@ import { MUSIC_STYLES, MOODS } from "@shared/types";
 const createJobSchema = z.object({
   story: z.string().min(10, "História deve ter pelo menos 10 caracteres"),
   style: z.enum(MUSIC_STYLES as unknown as [string, ...string[]]),
-  names: z.string().min(1, "Nome(s) do(s) homenageado(s) é obrigatório"),
+  title: z.string().min(1, "Título da música é obrigatório"),
   occasion: z.string().optional(),
   mood: z.enum(MOODS as unknown as [string, ...string[]]).optional(),
   email: z.string().email("Email inválido"),
@@ -99,20 +99,23 @@ export default function Create() {
                 )}
               </div>
 
-              {/* Nomes */}
+              {/* Título da História */}
               <div className="space-y-2">
-                <Label htmlFor="names" className="font-semibold">
-                  Nome(s) do(s) Homenageado(s) *
+                <Label htmlFor="title" className="font-semibold text-purple-800">
+                  Título da História *
                 </Label>
                 <Input
-                  id="names"
-                  placeholder="Ex: João, Maria e Pedro"
-                  className="border-slate-300"
-                  {...register("names")}
+                  id="title"
+                  placeholder="Ex: O Aniversário da Maria, A Formatura do João"
+                  className="border-slate-300 focus:border-purple-500 focus:ring-purple-500"
+                  {...register("title")}
                 />
-                {errors.names && (
-                  <p className="text-sm text-red-600">{errors.names.message}</p>
+                {errors.title && (
+                  <p className="text-sm text-red-600">{errors.title.message}</p>
                 )}
+                <p className="text-xs text-slate-500">
+                  Este será o título principal da sua música personalizada
+                </p>
               </div>
 
               {/* Ocasião */}
@@ -130,17 +133,19 @@ export default function Create() {
 
               {/* Estilo Musical */}
               <div className="space-y-2">
-                <Label htmlFor="style" className="font-semibold">
+                <Label htmlFor="style" className="font-semibold text-purple-800">
                   Estilo Musical *
                 </Label>
                 <Select value={style} onValueChange={(value) => setValue("style", value as any)}>
-                  <SelectTrigger className="border-slate-300">
+                  <SelectTrigger className="border-slate-300 focus:border-purple-500 focus:ring-purple-500">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-h-48">
                     {MUSIC_STYLES.map((s) => (
-                      <SelectItem key={s} value={s}>
-                        {s}
+                      <SelectItem key={s} value={s} className="hover:bg-purple-50">
+                        <span className="flex items-center gap-2">
+                          🎵 {s}
+                        </span>
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -148,6 +153,9 @@ export default function Create() {
                 {errors.style && (
                   <p className="text-sm text-red-600">{errors.style.message}</p>
                 )}
+                <p className="text-xs text-slate-500">
+                  Escolha o ritmo que mais combina com a personalidade da pessoa homenageada
+                </p>
               </div>
 
               {/* Clima/Emoção */}

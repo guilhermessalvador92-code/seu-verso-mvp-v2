@@ -8,13 +8,22 @@ export * from "./_core/errors";
 
 export const MUSIC_STYLES = [
   "Sertanejo",
-  "Pop",
+  "Pop", 
+  "Pop Rock",
   "Rock",
   "MPB",
   "Gospel",
-  "Funk",
+  "Funk Carioca",
   "Romântica 80/90",
   "Soul/Groove",
+  "Forró",
+  "Samba",
+  "Pagode", 
+  "Metal",
+  "Trap",
+  "Hip Hop",
+  "Eletrônica",
+  "Bolero",
 ] as const;
 
 export type MusicStyle = (typeof MUSIC_STYLES)[number];

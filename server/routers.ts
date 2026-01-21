@@ -70,7 +70,7 @@ export const appRouter = router({
           // Iniciar geração de música
           await updateJobStatus(jobId, "PROCESSING");
           const appUrl = process.env.APP_URL || "http://localhost:3000";
-          const callbackUrl = `${appUrl}/api/callback/job-done`;
+          const callbackUrl = `${appUrl}/api/webhook/suno`;
 
           const sunoTaskId = await generateMusicWithSuno(
             jobId,

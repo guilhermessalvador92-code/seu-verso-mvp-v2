@@ -36,22 +36,27 @@ Response:
 - `/api/v1/fetch?ids=X` → 404
 - `/api/v1/query?ids=X` → 404
 
-### Workaround: Callback URL
+### Callback URL
 
 A Suno API usa callback para notificar quando a música está pronta. 
 Quando a música é gerada, a API faz um POST para o `callBackUrl` fornecido.
 
-Implementar:
-1. Endpoint POST `/api/callback/job-done` que recebe os dados da música
-2. Armazenar audioUrl, lyrics, title no banco de dados
-3. Atualizar status do job para "DONE"
-4. Enviar email para o usuário
+**Status**: ✅ IMPLEMENTADO
+
+Endpoint correto:
+1. Endpoint POST `/api/webhook/suno` que recebe os dados da música
+2. Armazena audioUrl, lyrics, title no banco de dados
+3. Atualiza status do job para "DONE"
+4. Enfileira email de notificação automático
 
 ### API Key
 - Status: ✅ Válida e funcionando
-- Chave: `73d18ba8c67eb606d37b41dbd541a5f9`
+- Formato: String alfanumérica de ~30 caracteres
 
-### Próximas Ações
-1. Implementar endpoint de callback
-2. Testar fluxo completo de criação e notificação
-3. Configurar Resend API para envio de emails
+### Status de Implementação
+- ✅ Endpoint de callback implementado
+- ✅ Validação de payload implementada
+- ✅ Armazenamento de músicas implementado
+- ✅ Email de notificação implementado
+- ✅ Testes passando (6/6)
+- ✅ Pronto para produção

@@ -192,7 +192,10 @@ export async function getSongByJobId(jobId: string): Promise<Song | undefined> {
 
 export async function getSongBySlug(slug: string): Promise<Song | undefined> {
   const db = await getDb();
-  if (!db) return undefined;
+  if (!db) {
+    const found = _mockSongs.find((s) => s.shareSlug === slug);
+    return found as Song | undefined;
+  }
   const result = await db.select().from(songs).where(eq(songs.shareSlug, slug)).limit(1);
   return result.length > 0 ? result[0] : undefined;
 }

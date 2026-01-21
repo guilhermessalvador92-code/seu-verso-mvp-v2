@@ -94,15 +94,15 @@ export async function generateMusicWithSuno(
     // Criar título da música
     const title = `Música para ${names}`;
 
-    // Create instrumental prompt without vocals for cost efficiency
-    const instrumentalPrompt = `${prompt}\n\nIMPORTANT: This should be a pure instrumental composition with NO vocals, NO singing, NO lyrics. Focus on atmospheric, emotional instrumentation.`;
+    // Create song prompt WITH lyrics - we want a proper song with vocals
+    const songPrompt = `${prompt}\n\nIMPORTANT: This MUST be a SONG with VOCALS and LYRICS. Include singing with clear lyrics in Portuguese. The lyrics should tell the story or celebrate the person/occasion mentioned.`;
 
     const payload: SunoGenerateRequest = {
       customMode: true,
-      instrumental: true,  // Instrumental only - no vocals, much cheaper
+      instrumental: false,  // WITH vocals and lyrics
       model: "V4_5PLUS",
       callBackUrl: callbackUrl,
-      prompt: instrumentalPrompt,
+      prompt: songPrompt,
       style: sunoStyle,
       title: title,
       styleWeight: 0.8,
@@ -110,12 +110,12 @@ export async function generateMusicWithSuno(
       audioWeight: 0.7,
     };
 
-    console.log("[Suno] Sending request to generate instrumental music", {
+    console.log("[Suno] Sending request to generate music WITH LYRICS", {
       taskId: "pending",
       style: sunoStyle,
       title: title,
-      instrumental: true,
-      costEstimate: "Low (instrumental mode)",
+      hasLyrics: true,
+      costEstimate: "Standard (with vocals and lyrics)",
     });
 
     const response = await fetch(`${SUNO_API_BASE}/api/v1/generate`, {

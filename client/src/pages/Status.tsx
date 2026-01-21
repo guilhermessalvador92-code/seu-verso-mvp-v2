@@ -135,133 +135,51 @@ export default function Status() {
   }
 
   if (isReady && songs.length > 0) {
+    // Pega a primeira música disponível (ou única música)
+    const firstSong = songs[0];
+    
+    // Debug: Log do objeto da música para verificar estrutura
+    console.log("[Status] First song object:", firstSong);
+    console.log("[Status] Audio URL:", firstSong?.audioUrl);
+    console.log("[Status] All songs:", songs);
+    
+    // Busca pela URL do áudio em diferentes propriedades possíveis
+    const audioUrl = firstSong?.audioUrl || firstSong?.audio_url || firstSong?.url || firstSong?.file_url;
+    
     return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-12">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-          <Card className="border-slate-200 shadow-lg">
-            <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b border-slate-200">
-              <div className="flex items-center gap-3 mb-4">
-                <CheckCircle className="w-8 h-8 text-green-600" />
-                <div>
-                  <CardTitle className="text-2xl">
-                    Sua{songs.length > 1 ? 's' : ''} Música{songs.length > 1 ? 's' : ''} Está{songs.length > 1 ? 'ão' : ''} Pronta{songs.length > 1 ? 's' : ''}!
-                  </CardTitle>
-                  <CardDescription>Parabéns! 🎉</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-6">
-              <div className="space-y-6">
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <CheckCircle className="w-5 h-5 text-green-600" />
-                    <h3 className="font-semibold text-green-800">Música{songs.length > 1 ? 's' : ''} Criada{songs.length > 1 ? 's' : ''}!</h3>
-                  </div>
-                  <p className="text-green-700 text-sm">
-                    {songs.length > 1 
-                      ? `${songs.length} versões da sua música foram geradas com sucesso!`
-                      : "Sua música foi gerada com sucesso!"
-                    }
-                  </p>
-                </div>
-
-                {songs.map((currentSong, index) => (
-                  <div key={index} className="border border-slate-200 rounded-lg p-4 space-y-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Music className="w-5 h-5 text-purple-600" />
-                      <h3 className="font-semibold text-slate-900">
-                        {currentSong.title}{songs.length > 1 ? ` (Versão ${index + 1})` : ''}
-                      </h3>
-                    </div>
-
-                    {currentSong.audioUrl && (
-                      <div>
-                        <h4 className="font-medium text-slate-900 mb-2">🎵 Ouvir Agora</h4>
-                        <audio 
-                          controls 
-                          className="w-full mb-4" 
-                          preload="auto"
-                          autoPlay={index === 0}
-                          onError={(e) => {
-                            console.error('Erro no audio:', e);
-                            console.log('URL do audio:', currentSong.audioUrl);
-                          }}
-                        >
-                          <source src={currentSong.audioUrl} type="audio/mpeg" />
-                          <source src={currentSong.audioUrl} type="audio/mp4" />
-                          <source src={currentSong.audioUrl} type="audio/wav" />
-                          Seu navegador não suporta o elemento de áudio.
-                        </audio>
-                        
-                        {/* Botão de Download Grande */}
-                        <Button
-                          size="lg"
-                          className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold py-3"
-                          onClick={() => {
-                            const link = document.createElement("a");
-                            link.href = currentSong.audioUrl;
-                            link.download = `${currentSong.title}${songs.length > 1 ? ` - Versao ${index + 1}` : ''}.mp3`;
-                            document.body.appendChild(link);
-                            link.click();
-                            document.body.removeChild(link);
-                          }}
-                        >
-                          <Download className="w-5 h-5 mr-2" />
-                          💾 Baixar Esta Música
-                        </Button>
-                      </div>
-                    )}
-
-                    {currentSong.lyrics && (
-                      <div>
-                        <h4 className="font-medium text-slate-900 mb-2">Letra</h4>
-                        <div className="bg-slate-50 rounded-lg p-4 max-h-64 overflow-y-auto">
-                          <p className="text-slate-700 whitespace-pre-wrap font-mono text-sm">
-                            {currentSong.lyrics}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <Button
-                    size="lg"
-                    className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"
-                    onClick={() => song.shareSlug && setLocation(`/m/${song.shareSlug}`)}
-                    disabled={!song?.shareSlug}
-                  >
-                    <Music className="w-4 h-4 mr-2" />
-                    Ver Página de Compartilhamento
-                  </Button>
-                  
-                  {songs.length > 1 && (
-                    <Button
-                      size="lg"
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => {
-                        songs.forEach((currentSong, index) => {
-                          setTimeout(() => {
-                            const link = document.createElement("a");
-                            link.href = currentSong.audioUrl;
-                            link.download = `${currentSong.title} - Versao ${index + 1}.mp3`;
-                            document.body.appendChild(link);
-                            link.click();
-                            document.body.removeChild(link);
-                          }, index * 500);
-                        });
-                      }}
-                    >
-                      <Download className="w-4 h-4 mr-2" />
-                      Baixar Todas ({songs.length})
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white flex items-center justify-center py-12">
+        <div className="max-w-md mx-auto px-4">
+          {audioUrl ? (
+            <div className="text-center">
+              <audio 
+                controls 
+                className="w-full shadow-xl rounded-lg" 
+                preload="auto"
+                autoPlay
+                onError={(e) => {
+                  console.error('Erro no audio:', e);
+                  console.log('URL do audio tentada:', audioUrl);
+                  console.log('Objeto completo da música:', firstSong);
+                }}
+                onLoadStart={() => {
+                  console.log('[Status] Audio começou a carregar');
+                }}
+                onCanPlay={() => {
+                  console.log('[Status] Audio pode começar a tocar');
+                }}
+              >
+                <source src={audioUrl} type="audio/mpeg" />
+                <source src={audioUrl} type="audio/mp4" />
+                <source src={audioUrl} type="audio/wav" />
+                Seu navegador não suporta o elemento de áudio.
+              </audio>
+            </div>
+          ) : (
+            <div className="text-center text-red-600">
+              <p>Erro: URL do áudio não encontrada</p>
+              <p className="text-sm mt-2">Debug: {JSON.stringify(firstSong, null, 2)}</p>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -328,41 +246,10 @@ export default function Status() {
               </div>
 
               {/* Info */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p className="text-sm text-blue-900">
-                  ⏱️ A música está sendo processada. Verificaremos a cada 15 segundos se está pronta.
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                <p className="text-lg text-blue-900 text-center">
+                  ⏱️ A música está sendo processada. Aguarde alguns minutos...
                 </p>
-              </div>
-
-              {/* Botões */}
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Button
-                  size="lg"
-                  className="flex-1 bg-slate-600 hover:bg-slate-700"
-                  onClick={() => window.location.reload()}
-                >
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Atualizar Página
-                </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="flex-1 text-xs"
-                  onClick={async () => {
-                    try {
-                      await testWebhookMutation.mutateAsync({ jobId: jobId || "" });
-                      // Wait a bit then refetch
-                      setTimeout(() => {
-                        refetch();
-                      }, 1000);
-                    } catch (error) {
-                      console.error("Webhook simulation failed:", error);
-                    }
-                  }}
-                  disabled={testWebhookMutation.isLoading}
-                >
-                  🧪 Simular Webhook (Dev)
-                </Button>
               </div>
             </div>
           </CardContent>

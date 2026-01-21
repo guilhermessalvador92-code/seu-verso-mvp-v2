@@ -8,6 +8,8 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { handleSunoCallback, webhookHealthCheck, webhookTest } from "../webhook";
+import { getJobById, getSongsByJobId } from "../db";
+import path from "path";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -71,6 +73,37 @@ async function startServer() {
       createContext,
     })
   );
+
+  // REST status endpoint (sem eval, sem bundler)
+  app.get("/api/status-simple/:jobId", async (req, res) => {
+    try {
+      const job = await getJobById(req.params.jobId);
+      if (!job) {
+        return res.status(404).json({ status: "NOT_FOUND" });
+      }
+      const songs = await getSongsByJobId(req.params.jobId);
+      res.json({
+        status: job.status,
+        songs: songs?.map(s => ({
+          title: s.title,
+          audioUrl: s.audioUrl,
+          lyrics: s.lyrics,
+          shareSlug: s.shareSlug,
+        })) || [],
+      });
+    } catch (err) {
+      console.error("[Status] Falha ao obter job", err);
+      res.status(500).json({ status: "ERROR" });
+    }
+  });
+
+  // Página de entrega minimalista sem depender do bundle React
+  app.get("/status/:jobId", (req, res, next) => {
+    const statusPath = path.resolve(import.meta.dirname, "../public/status.html");
+    res.sendFile(statusPath, err => {
+      if (err) next();
+    });
+  });
   // development mode uses Vite, production mode uses static files
   // Log webhook URL
   const appUrl = process.env.APP_URL || `http://localhost:${process.env.PORT || 3000}`;

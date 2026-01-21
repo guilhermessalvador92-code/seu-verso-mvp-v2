@@ -66,6 +66,18 @@ export async function generateMusicWithSuno(
     return `test-${nanoid(8)}`;
   }
 
+  // Mock mode for testing without spending credits
+  if (process.env.MOCK_SUNO_API === "true") {
+    const mockTaskId = `mock-${nanoid(8)}`;
+    console.log("[Suno] MOCK MODE - Returning mock task ID:", mockTaskId);
+    console.log("[Suno] To disable mock mode, set MOCK_SUNO_API=false or remove it");
+    
+    // Simulate async operation
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    return mockTaskId;
+  }
+
   const SUNO_API_KEY = process.env.SUNO_API_KEY;
   if (!SUNO_API_KEY) {
     console.error("[Suno] API Key not configured");
@@ -82,24 +94,28 @@ export async function generateMusicWithSuno(
     // Criar título da música
     const title = `Música para ${names}`;
 
+    // Create instrumental prompt without vocals for cost efficiency
+    const instrumentalPrompt = `${prompt}\n\nIMPORTANT: This should be a pure instrumental composition with NO vocals, NO singing, NO lyrics. Focus on atmospheric, emotional instrumentation.`;
+
     const payload: SunoGenerateRequest = {
       customMode: true,
-      instrumental: false,
+      instrumental: true,  // Instrumental only - no vocals, much cheaper
       model: "V4_5PLUS",
       callBackUrl: callbackUrl,
-      prompt: prompt,
+      prompt: instrumentalPrompt,
       style: sunoStyle,
       title: title,
-      vocalGender: "m",
-      styleWeight: 0.7,
-      weirdnessConstraint: 0.5,
-      audioWeight: 0.65,
+      styleWeight: 0.8,
+      weirdnessConstraint: 0.4,
+      audioWeight: 0.7,
     };
 
-    console.log("[Suno] Sending request to generate music", {
+    console.log("[Suno] Sending request to generate instrumental music", {
       taskId: "pending",
       style: sunoStyle,
       title: title,
+      instrumental: true,
+      costEstimate: "Low (instrumental mode)",
     });
 
     const response = await fetch(`${SUNO_API_BASE}/api/v1/generate`, {
@@ -142,6 +158,29 @@ export async function generateMusicWithSuno(
 }
 
 export async function getSunoTaskDetails(taskId: string): Promise<SunoTaskDetails | null> {
+  // Mock mode for testing without spending credits
+  if (process.env.MOCK_SUNO_API === "true" && taskId.startsWith("mock-")) {
+    console.log("[Suno] MOCK MODE - Returning mock task details for:", taskId);
+    
+    // Return a completed mock task
+    return {
+      id: taskId,
+      status: "complete",
+      gpt_description_prompt: "Mock music generated",
+      prompt: "Mock prompt",
+      title: "Mock Music",
+      image_url: "https://via.placeholder.com/300",
+      lyric: "Mock lyrics for testing",
+      audio_url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3", // Public test MP3
+      video_url: null,
+      created_at: new Date().toISOString(),
+      model_name: "mock-model",
+      duration: 180,
+      tags: "mock, test",
+      error_message: null,
+    };
+  }
+
   // Try to fetch from Suno API with fallback endpoints
   const SUNO_API_KEY = process.env.SUNO_API_KEY;
   if (!SUNO_API_KEY) {
@@ -241,33 +280,33 @@ function buildFallbackPrompt(
   occasion: string | undefined,
   mood: string | undefined
 ): string {
-  let prompt = `Crie uma música personalizada TOTALMENTE em português brasileiro (sem misturar idiomas). `;
-  prompt += `A música é para ${names}. `;
+  let prompt = `Create a pure instrumental composition (NO vocals, NO singing, NO lyrics). Emotionally resonant background music inspired by:\n\n`;
+  prompt += `For: ${names}\n`;
 
   if (occasion) {
-    prompt += `Ocasião: ${occasion}. `;
+    prompt += `Occasion: ${occasion}\n`;
   }
 
   let moodDescription = "";
   if (mood) {
     const moodMap: Record<string, string> = {
-      "Emocionante": "emotiva, tocante, que mexe com o coração",
-      "Alegre": "alegre, animada, que faz dançar",
-      "Engraçado": "divertida, com humor, descontraída",
-      "Épico": "épica, grandiosa, inspiradora",
+      "Emocionante": "emotional, touching, moving",
+      "Alegre": "joyful, uplifting, celebratory",
+      "Engraçado": "playful, lighthearted, fun",
+      "Épico": "epic, grand, inspirational",
     };
     moodDescription = moodMap[mood] || mood.toLowerCase();
-    prompt += `Emoção: ${moodDescription}. `;
+    prompt += `Mood: ${moodDescription}\n`;
   }
 
-  prompt += `\n\nHistória/Contexto:\n${story}\n\n`;
-  prompt += `IMPORTANTE: `;
-  prompt += `- Letra TOTALMENTE em português brasileiro (sem inglês, sem mistura de idiomas)\n`;
-  prompt += `- Letra coerente, bem estruturada e profissional\n`;
-  prompt += `- Rimas bem pensadas e naturais\n`;
-  prompt += `- Métrica e ritmo consistentes\n`;
-  prompt += `- Mensagem clara e emocionante\n`;
-  prompt += `- Duração: 2-3 minutos`;
+  prompt += `\nContext/Story:\n${story}\n\n`;
+  prompt += `IMPORTANT:\n`;
+  prompt += `- PURE INSTRUMENTAL - absolutely NO vocals, NO singing, NO words\n`;
+  prompt += `- Emotionally coherent and well-structured\n`;
+  prompt += `- Consistent rhythm and flow\n`;
+  prompt += `- Clear emotional message through instrumentation\n`;
+  prompt += `- Duration: 2-3 minutes\n`;
+  prompt += `- Focus on atmospheric, immersive soundscapes`;
 
   if (prompt.length > 5000) {
     prompt = prompt.substring(0, 4997) + "...";

@@ -4,7 +4,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import { nanoid } from "nanoid";
-import { createJob, getJobById, updateJobStatus, createSong, getSongByJobId, getSongBySlug, createLead, incrementDownloadCount } from "./db";
+import { createJob, getJobById, updateJobStatus, updateJobSunoTaskId, createSong, getSongByJobId, getSongBySlug, createLead, incrementDownloadCount } from "./db";
 import { CreateJobPayload, JobStatusResponse, CallbackPayload, MUSIC_STYLES, MOODS } from "@shared/types";
 import { generateMusicWithSuno } from "./suno";
 import { queueOrderConfirmationEmail } from "./email-queue-integration";
@@ -84,6 +84,8 @@ export const appRouter = router({
 
           if (sunoTaskId) {
             console.log("[Jobs] Suno task created:", sunoTaskId);
+            // Salvar sunoTaskId no banco para correlação com callback
+            await updateJobSunoTaskId(jobId, sunoTaskId);
             // Adicionar à fila de polling
             addJobToPolling(jobId, sunoTaskId);
           } else {

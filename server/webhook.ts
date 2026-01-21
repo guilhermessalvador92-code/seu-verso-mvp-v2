@@ -25,7 +25,7 @@
  */
 
 import { Request, Response } from "express";
-import { getJobById, updateJobStatus, createSong, getLeadByJobId } from "./db";
+import { getJobById, getJobBySunoTaskId, updateJobStatus, createSong, getLeadByJobId } from "./db";
 import { queueMusicReadyEmail } from "./email-queue-integration";
 import { nanoid } from "nanoid";
 
@@ -201,6 +201,18 @@ export async function handleSunoCallback(req: Request, res: Response) {
         });
       }
 
+      // Recuperar jobId pelo sunoTaskId
+      const job = await getJobBySunoTaskId(task_id);
+      if (!job) {
+        console.error("[Webhook] No job found for Suno task_id:", task_id);
+        return res.status(404).json({
+          success: false,
+          error: `Job not found for task_id: ${task_id}`,
+        });
+      }
+
+      const jobId = job.id;
+
       // Gerar slug único para compartilhamento
       const shareSlug = nanoid(16);
 
@@ -208,7 +220,7 @@ export async function handleSunoCallback(req: Request, res: Response) {
         // Criar registro de música
         const song = await createSong({
           id: nanoid(),
-          jobId: task_id,
+          jobId: jobId,
           title: title || "Untitled",
           lyrics: prompt || "",
           audioUrl: audio_url,
@@ -221,7 +233,7 @@ export async function handleSunoCallback(req: Request, res: Response) {
         });
 
         console.log("[Webhook] Song created:", {
-          jobId: task_id,
+          jobId: jobId,
           songId: song?.id,
           shareSlug,
           title,
@@ -229,14 +241,14 @@ export async function handleSunoCallback(req: Request, res: Response) {
         });
 
         // Atualizar job status para DONE
-        await updateJobStatus(task_id, "DONE");
-        console.log("[Webhook] Job marked as DONE:", task_id);
+        await updateJobStatus(jobId, "DONE");
+        console.log("[Webhook] Job marked as DONE:", jobId);
 
         // Obter lead para enviar email
-        const lead = await getLeadByJobId(task_id);
+        const lead = await getLeadByJobId(jobId);
         if (lead && lead.email) {
           console.log("[Webhook] Queuing music ready email for:", lead.email);
-          queueMusicReadyEmail(lead.email, task_id, shareSlug, title).catch(
+          queueMusicReadyEmail(lead.email, jobId, shareSlug, title).catch(
             (error) => {
               console.error("[Webhook] Failed to queue email:", error);
             }
@@ -248,7 +260,7 @@ export async function handleSunoCallback(req: Request, res: Response) {
           success: true,
           message: "Music processed successfully",
           data: {
-            jobId: task_id,
+            jobId: jobId,
             shareSlug,
             musicUrl: `/m/${shareSlug}`,
           },

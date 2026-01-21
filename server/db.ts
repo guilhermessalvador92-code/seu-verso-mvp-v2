@@ -114,6 +114,16 @@ export async function getJobById(jobId: string): Promise<Job | undefined> {
   return result.length > 0 ? result[0] : undefined;
 }
 
+export async function getJobBySunoTaskId(sunoTaskId: string): Promise<Job | undefined> {
+  const db = await getDb();
+  if (!db) {
+    const found = _mockJobs.find((j) => j.sunoTaskId === sunoTaskId);
+    return found as Job | undefined;
+  }
+  const result = await db.select().from(jobs).where(eq(jobs.sunoTaskId, sunoTaskId)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
 export async function updateJobStatus(jobId: string, status: Job["status"]): Promise<void> {
   const db = await getDb();
   if (!db) {

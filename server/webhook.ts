@@ -90,6 +90,7 @@ export async function handleSunoCallback(req: Request, res: Response) {
       try {
         const job = await getJobById(jobId);
         if (!job) {
+          console.error("[Webhook] Job not found:", jobId);
           return res.status(404).json({
             success: false,
             error: "Job not found",
@@ -98,7 +99,7 @@ export async function handleSunoCallback(req: Request, res: Response) {
 
         // Create song with a public share slug
         const shareSlug = nanoid(8);
-        const song = await createSong({
+        const songData = {
           id: nanoid(),
           jobId,
           title: title || "Untitled",
@@ -106,22 +107,35 @@ export async function handleSunoCallback(req: Request, res: Response) {
           audioUrl,
           shareSlug,
           createdAt: new Date(),
+        };
+
+        console.log("[Webhook Test] Creating song with data:", songData);
+        const song = await createSong(songData);
+
+        console.log("[Webhook Test] Song created result:", {
+          jobId,
+          songId: song?.id,
+          shareSlug: song?.shareSlug,
+          title: song?.title,
+          audioUrl: song?.audioUrl,
         });
 
         // Update job status
         await updateJobStatus(jobId, "DONE");
+
+        console.log("[Webhook Test] Job status updated to DONE:", jobId);
 
         return res.status(200).json({
           success: true,
           data: {
             jobId,
             songId: song?.id,
-            shareSlug,
-            shareUrl: `/m/${shareSlug}`,
+            shareSlug: song?.shareSlug,
+            shareUrl: `/m/${song?.shareSlug}`,
           },
         });
       } catch (error) {
-        console.error("[Webhook] Error processing test callback:", error);
+        console.error("[Webhook Test] Error processing test callback:", error);
         return res.status(500).json({
           success: false,
           error: String(error),
@@ -218,7 +232,7 @@ export async function handleSunoCallback(req: Request, res: Response) {
 
       try {
         // Criar registro de música
-        const song = await createSong({
+        const songData = {
           id: nanoid(),
           jobId: jobId,
           title: title || "Untitled",
@@ -230,13 +244,17 @@ export async function handleSunoCallback(req: Request, res: Response) {
           modelName: model_name || "chirp-v3-5",
           shareSlug,
           createdAt: new Date(),
-        });
+        };
 
-        console.log("[Webhook] Song created:", {
+        console.log("[Webhook] Creating song with data:", songData);
+        const song = await createSong(songData);
+
+        console.log("[Webhook] Song created result:", {
           jobId: jobId,
           songId: song?.id,
-          shareSlug,
-          title,
+          shareSlug: song?.shareSlug,
+          title: song?.title,
+          audioUrl: song?.audioUrl,
           duration,
         });
 

@@ -150,7 +150,35 @@ function vitePluginManusDebugCollector(): Plugin {
   };
 }
 
-const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector()];
+/**
+ * Plugin para substituir variáveis de ambiente em HTML
+ * Substitui %VITE_*% com os valores das variáveis de ambiente
+ */
+function vitePluginEnvSubstitution(): Plugin {
+  return {
+    name: "env-substitution",
+    transformIndexHtml(html) {
+      // Substitui todas as ocorrências de %VITE_*% com valores do ambiente
+      return html.replace(/%VITE_(\w+)%/g, (match, varName) => {
+        const value = process.env[`VITE_${varName}`];
+        if (!value) {
+          console.warn(`⚠️ Missing environment variable: VITE_${varName}`);
+          return match; // Retorna o valor original se não encontrar
+        }
+        return value;
+      });
+    },
+  };
+}
+
+const plugins = [
+  react(),
+  tailwindcss(),
+  jsxLocPlugin(),
+  vitePluginManusRuntime(),
+  vitePluginManusDebugCollector(),
+  vitePluginEnvSubstitution(),
+];
 
 export default defineConfig({
   plugins,

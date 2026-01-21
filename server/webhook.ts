@@ -102,6 +102,52 @@ function extractAndFormatLyrics(
 }
 
 /**
+ * Validar origem da requisição (Suno API)
+ * Recomendado pela documentação Suno
+ */
+function validateSunoOrigin(req: Request): boolean {
+  // Suno API vem de IPs confiáveis
+  // Em produção, validar contra whitelist da Suno
+  const sunoAllowedOrigins = [
+    "https://api.sunoapi.org",
+    "api.sunoapi.org",
+  ];
+  
+  const origin = req.get("origin") || req.get("referer") || "";
+  
+  // Se não há origin declarado, é um webhook (OK)
+  // Se houver, validar contra whitelist
+  if (origin) {
+    const isAllowed = sunoAllowedOrigins.some(allowed => origin.includes(allowed));
+    return isAllowed;
+  }
+  
+  return true; // Webhooks diretos são OK
+}
+
+/**
+ * Garantir idempotência - armazenar task_id processados
+ * Map simples para demo (em produção: usar Redis/DB)
+ */
+const processedTasks = new Set<string>();
+
+/**
+ * Marcar tarefa como processada
+ */
+function markTaskProcessed(taskId: string): void {
+  processedTasks.add(taskId);
+  // Limpar após 24 horas (garbage collection)
+  setTimeout(() => processedTasks.delete(taskId), 24 * 60 * 60 * 1000);
+}
+
+/**
+ * Verificar se tarefa já foi processada
+ */
+function isTaskAlreadyProcessed(taskId: string): boolean {
+  return processedTasks.has(taskId);
+}
+
+/**
  * Validar payload do callback da Suno
  */
 function validateSunoCallback(data: any): data is SunoCallbackRequest {
@@ -116,9 +162,29 @@ function validateSunoCallback(data: any): data is SunoCallbackRequest {
 
 /**
  * Handler para webhook de callback da Suno API
+ * Segue best practices da documentação Suno
  */
 export async function handleSunoCallback(req: Request, res: Response) {
   try {
+    // 1. Validar origem (recomendado Suno)
+    if (!validateSunoOrigin(req)) {
+      console.warn("[Webhook] Invalid origin:", req.get("origin"));
+      return res.status(403).json({
+        success: false,
+        error: "Invalid origin",
+      });
+    }
+
+    // 2. Validar JSON/Content-Type
+    if (!req.is("application/json")) {
+      console.error("[Webhook] Invalid Content-Type:", req.get("content-type"));
+      return res.status(400).json({
+        success: false,
+        error: "Invalid Content-Type, expected application/json",
+      });
+    }
+
+    // 3. Log da requisição
     console.log("[Webhook] Received Suno callback:", {
       timestamp: new Date().toISOString(),
       code: req.body?.code,

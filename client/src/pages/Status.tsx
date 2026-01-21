@@ -266,14 +266,23 @@ export default function Status() {
                   <Loader2 className="w-4 h-4 mr-2" />
                   Atualizar Agora
                 </Button>
-                <Button
-                  className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"
-                  onClick={() => alert('Aguarde a música ficar pronta para fazer download')}
-                  disabled
-                >
-                  <Music className="w-4 h-4 mr-2" />
-                  Ir para Download (Aguarde)
-                </Button>
+                {status?.song?.shareSlug ? (
+                  <Button
+                    className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"
+                    onClick={() => setLocation(`/m/${status.song!.shareSlug}`)}
+                  >
+                    <Music className="w-4 h-4 mr-2" />
+                    Ir para Download
+                  </Button>
+                ) : (
+                  <Button
+                    className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"
+                    disabled
+                  >
+                    <Music className="w-4 h-4 mr-2" />
+                    Ir para Download (Aguarde)
+                  </Button>
+                )}
               </div>
             </div>
           </CardContent>

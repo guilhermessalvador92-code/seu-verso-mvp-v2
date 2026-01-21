@@ -62,6 +62,46 @@ export interface SunoMusicData {
 }
 
 /**
+ * Melhorar e formatar lyrics para exibição
+ * Tenta extrair lyrics de múltiplas fontes
+ */
+function extractAndFormatLyrics(
+  lyrics?: string,
+  gptDescription?: string,
+  prompt?: string
+): string {
+  // Preferência: lyrics completas > descrição GPT > prompt
+  let content = lyrics || gptDescription || prompt || "";
+  
+  // Se for vazio, retornar fallback
+  if (!content) {
+    return "Música gerada via Suno API";
+  }
+  
+  // Se for o prompt bruto, tentar extrair seções de letra
+  if (!lyrics && !gptDescription && prompt) {
+    // Procurar por padrões de verso/chorus no prompt
+    const verseMatch = prompt.match(/\[Verse.*?\](.*?)(?:\[|$)/si);
+    const chorusMatch = prompt.match(/\[Chorus.*?\](.*?)(?:\[|$)/si);
+    
+    if (verseMatch || chorusMatch) {
+      let formatted = "";
+      if (verseMatch) formatted += `[Verso]\n${verseMatch[1].trim()}\n\n`;
+      if (chorusMatch) formatted += `[Refrão]\n${chorusMatch[1].trim()}`;
+      if (formatted) return formatted;
+    }
+  }
+  
+  // Limpar e formatar o conteúdo
+  content = content
+    .replace(/\[IMPORTANT:.*?\]/gi, "")
+    .replace(/^https?:\/\/.+$/gm, "")
+    .trim();
+  
+  return content || "Música gerada via Suno API";
+}
+
+/**
  * Validar payload do callback da Suno
  */
 function validateSunoCallback(data: any): data is SunoCallbackRequest {
@@ -238,21 +278,7 @@ export async function handleSunoCallback(req: Request, res: Response) {
       try {
         // Criar registro de música
         // Preferência: lyrics > gpt_description_prompt > prompt
-        let songLyrics = lyrics || gpt_description_prompt || prompt || "Música gerada via Suno";
-        
-        // Se não temos lyrics, tentar buscar detalhes completos da Suno API
-        if (!lyrics && !gpt_description_prompt) {
-          console.log("[Webhook] Attempting to fetch full task details from Suno API for lyrics...");
-          try {
-            const taskDetails = await getSunoTaskDetails(task_id);
-            if (taskDetails?.data?.lyrics) {
-              songLyrics = taskDetails.data.lyrics;
-              console.log("[Webhook] Successfully fetched lyrics from Suno API");
-            }
-          } catch (error) {
-            console.log("[Webhook] Could not fetch additional lyrics from Suno API, using prompt as fallback");
-          }
-        }
+        const songLyrics = extractAndFormatLyrics(lyrics, gpt_description_prompt, prompt);
         
         const songData = {
           id: nanoid(),
@@ -419,15 +445,35 @@ export async function webhookTest(req: Request, res: Response) {
               id: nanoid(),
               audio_url: "https://cdn1.suno.ai/6a01e748-243c-4e15-aa4d-dbe514febe88.mp3",
               image_url: "https://cdn2.suno.ai/image_6a01e748.jpeg",
-              prompt: "Uma música alegre celebrando amizade",
+              prompt: "Uma música alegre celebrando amizade e momentos especiais",
               title: `Música para Guilherme - ${new Date().toLocaleTimeString()}`,
               tags: "celebração, amizade, teste",
               model_name: "chirp-v3-5",
               duration: 180,
               createTime: new Date().toISOString(),
-              // Include mock lyrics for testing
-              lyrics: `[Verse 1]\nGuilherme, amigo do coração\nSua amizade é uma benção\nTodos os dias mais feliz\nCom você nessa missão\n\n[Chorus]\nVocê é especial demais\nSua alegria nos traz paz\nGuilherme, você é nosso herói\nSempre junto em tudo que nos faz feliz`,
-              gpt_description_prompt: "Uma celebração da amizade e da felicidade compartilhada"
+              // Retornar lyrics bem estruturadas
+              lyrics: `[Verso 1]
+Guilherme, amigo do coração
+Sua amizade é uma benção
+Todos os dias mais feliz
+Com você nessa jornada, que emoção
+
+[Pré-Refrão]
+Você está sempre lá
+Quando eu preciso contar
+
+[Refrão]
+Guilherme, você é especial demais
+Sua alegria nos traz paz
+Você é nosso herói, é verdade
+Sempre junto em tudo que fazemos com felicidade
+
+[Verso 2]
+Momentos compartilhados, risos e magia
+Sua força e teu sorriso ilumina o dia
+Obrigado pelas lições que você me deu
+Guilherme, você é ouro, sempre vou acreditar em você`,
+              gpt_description_prompt: "Uma celebração sincera da amizade, lealdade e dos momentos especiais compartilhados"
             },
           ],
         },

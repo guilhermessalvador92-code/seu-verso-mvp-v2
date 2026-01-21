@@ -3,7 +3,7 @@ import { useRoute, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, CheckCircle, AlertCircle, Music } from "lucide-react";
+import { Loader2, CheckCircle, AlertCircle, Music, Download } from "lucide-react";
 import { JOB_STEPS } from "@shared/types";
 
 export default function Status() {
@@ -12,39 +12,62 @@ export default function Status() {
   const jobId = params?.jobId;
 
   const [currentStep, setCurrentStep] = useState(0);
-  const [autoRefresh, setAutoRefresh] = useState(true);
-  const [hasFinished, setHasFinished] = useState(false);
+  const [isReady, setIsReady] = useState(false);
+  const [isFailed, setIsFailed] = useState(false);
+  const [lastCheck, setLastCheck] = useState<Date | null>(null);
+  const [song, setSong] = useState<any>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
 
-  const { data: status, isLoading, refetch } = trpc.jobs.getStatus.useQuery(
-    { jobId: jobId || "" },
-    { 
-      enabled: !!jobId && !hasFinished, 
-      refetchInterval: autoRefresh && !hasFinished ? 3000 : false 
-    }
-  );
-
-  // Sincronizar steps com status real
+  // Polling a cada 15 segundos para verificar se está pronto
   useEffect(() => {
-    if (!status) return;
+    if (!jobId || isReady || isFailed) return;
 
-    if (status.status === "QUEUED") {
-      setCurrentStep(0);
-    } else if (status.status === "PROCESSING") {
-      // Animar enquanto está processando
-      setCurrentStep(1);
-      const interval = setInterval(() => {
-        setCurrentStep((prev) => (prev < JOB_STEPS.length - 2 ? prev + 1 : JOB_STEPS.length - 2));
-      }, 1500);
-      return () => clearInterval(interval);
-    } else if (status.status === "DONE") {
-      setCurrentStep(JOB_STEPS.length - 1);
-      setAutoRefresh(false);
-      setHasFinished(true);
-    } else if (status.status === "FAILED") {
-      setAutoRefresh(false);
-      setHasFinished(true);
-    }
-  }, [status?.status]);
+    const checkStatus = async () => {
+      try {
+        const result = await trpc.jobs.getStatus.query({ jobId });
+        
+        console.log("[Status] Check result:", {
+          status: result.status,
+          hasSong: !!result.song,
+          timestamp: new Date().toLocaleTimeString(),
+        });
+
+        if (result.status === "DONE" && result.song) {
+          setSong(result.song);
+          setIsReady(true);
+          setCurrentStep(JOB_STEPS.length - 1);
+        } else if (result.status === "FAILED") {
+          setIsFailed(true);
+        }
+
+        setLastCheck(new Date());
+      } catch (error) {
+        console.error("[Status] Error checking status:", error);
+      }
+    };
+
+    // Check inicial
+    checkStatus();
+
+    // Check a cada 15 segundos
+    const interval = setInterval(checkStatus, 15000);
+
+    return () => clearInterval(interval);
+  }, [jobId, isReady, isFailed]);
+
+  // Animação contínua enquanto processando
+  useEffect(() => {
+    if (isReady || isFailed) return;
+
+    const animationInterval = setInterval(() => {
+      setCurrentStep((prev) => {
+        const maxStep = JOB_STEPS.length - 2;
+        return prev < maxStep ? prev + 1 : 1; // Loop between 1 and max
+      });
+    }, 1000); // Atualiza a cada 1 segundo
+
+    return () => clearInterval(animationInterval);
+  }, [isReady, isFailed]);
 
   if (!match || !jobId) {
     return (
@@ -62,110 +85,7 @@ export default function Status() {
     );
   }
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white flex items-center justify-center">
-        <Card className="border-slate-200 w-full max-w-md">
-          <CardContent className="pt-6 text-center">
-            <Loader2 className="w-12 h-12 text-purple-600 mx-auto mb-4 animate-spin" />
-            <p className="text-slate-900 font-semibold">Carregando status...</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (!status) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white flex items-center justify-center">
-        <Card className="border-slate-200 w-full max-w-md">
-          <CardContent className="pt-6 text-center">
-            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <p className="text-slate-900 font-semibold mb-4">Erro ao carregar status</p>
-            <Button onClick={() => refetch()} className="bg-purple-600 hover:bg-purple-700">
-              Tentar Novamente
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (status.status === "DONE" && status.song) {
-    const song = status.song;
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-12">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-          <Card className="border-slate-200 shadow-lg">
-            <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b border-slate-200">
-              <div className="flex items-center gap-3 mb-4">
-                <CheckCircle className="w-8 h-8 text-green-600" />
-                <div>
-                  <CardTitle className="text-2xl">Sua Música Está Pronta!</CardTitle>
-                  <CardDescription>Parabéns! 🎉</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-6">
-              <div className="space-y-6">
-                <div>
-                  <h3 className="font-semibold text-slate-900 mb-2">Título</h3>
-                  <p className="text-slate-700">{song.title}</p>
-                </div>
-
-                {/* Player */}
-                <div>
-                  <h3 className="font-semibold text-slate-900 mb-2">Ouvir</h3>
-                  <audio
-                    controls
-                    className="w-full"
-                    src={song.audioUrl}
-                  >
-                    Seu navegador não suporta o elemento de áudio.
-                  </audio>
-                </div>
-
-                {/* Letra */}
-                {song.lyrics && (
-                  <div>
-                    <h3 className="font-semibold text-slate-900 mb-2">Letra</h3>
-                    <div className="bg-slate-50 rounded-lg p-4 max-h-64 overflow-y-auto">
-                      <p className="text-slate-700 whitespace-pre-wrap font-mono text-sm">
-                        {song.lyrics}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Botões */}
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <Button
-                    size="lg"
-                    className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"
-                    onClick={() => song.shareSlug ? setLocation(`/m/${song.shareSlug}`) : alert('Slug não disponível ainda')}
-                    disabled={!song.shareSlug}
-                  >
-                    <Music className="w-4 h-4 mr-2" />
-                    Ver Página de Compartilhamento
-                  </Button>
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="flex-1"
-                    onClick={() => setLocation("/")}
-                  >
-                    Criar Outra Música
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
-  if (status.status === "FAILED") {
+  if (isFailed) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-12">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -181,7 +101,7 @@ export default function Status() {
             </CardHeader>
             <CardContent className="pt-6">
               <p className="text-slate-700 mb-6">
-                Desculpe, houve um erro ao gerar sua música. Por favor, tente novamente ou entre em contato com suporte.
+                Desculpe, houve um erro ao gerar sua música. Por favor, tente novamente.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button
@@ -207,7 +127,85 @@ export default function Status() {
     );
   }
 
-  // QUEUED or PROCESSING
+  if (isReady && song) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-12">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+          <Card className="border-slate-200 shadow-lg">
+            <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b border-slate-200">
+              <div className="flex items-center gap-3 mb-4">
+                <CheckCircle className="w-8 h-8 text-green-600" />
+                <div>
+                  <CardTitle className="text-2xl">Sua Música Está Pronta!</CardTitle>
+                  <CardDescription>Parabéns! 🎉</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <div className="space-y-6">
+                <div>
+                  <h3 className="font-semibold text-slate-900 mb-2">Título</h3>
+                  <p className="text-slate-700">{song.title}</p>
+                </div>
+
+                {song.audioUrl && (
+                  <div>
+                    <h3 className="font-semibold text-slate-900 mb-2">Ouvir</h3>
+                    <audio controls className="w-full" src={song.audioUrl}>
+                      Seu navegador não suporta o elemento de áudio.
+                    </audio>
+                  </div>
+                )}
+
+                {song.lyrics && (
+                  <div>
+                    <h3 className="font-semibold text-slate-900 mb-2">Letra</h3>
+                    <div className="bg-slate-50 rounded-lg p-4 max-h-64 overflow-y-auto">
+                      <p className="text-slate-700 whitespace-pre-wrap font-mono text-sm">
+                        {song.lyrics}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <Button
+                    size="lg"
+                    className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"
+                    onClick={() => song.shareSlug && setLocation(`/m/${song.shareSlug}`)}
+                    disabled={!song.shareSlug}
+                  >
+                    <Music className="w-4 h-4 mr-2" />
+                    Ver Página de Compartilhamento
+                  </Button>
+                  {song.audioUrl && (
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => {
+                        const link = document.createElement("a");
+                        link.href = song.audioUrl;
+                        link.download = `${song.title}.mp3`;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                      }}
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Baixar Música
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // Processando - Animação em loop
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-12">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -218,11 +216,16 @@ export default function Status() {
             <div className="mt-4 p-3 bg-white rounded border border-slate-200">
               <p className="text-sm text-slate-600"><strong>ID da Requisição:</strong></p>
               <p className="text-sm font-mono text-purple-600 break-all">{jobId}</p>
+              {lastCheck && (
+                <p className="text-xs text-slate-500 mt-2">
+                  Último check: {lastCheck.toLocaleTimeString()}
+                </p>
+              )}
             </div>
           </CardHeader>
           <CardContent className="pt-8">
             <div className="space-y-8">
-              {/* Steps */}
+              {/* Steps com animação em loop */}
               <div className="space-y-4">
                 {JOB_STEPS.map((step, index) => (
                   <div key={step.key} className="flex items-start gap-4">
@@ -250,12 +253,14 @@ export default function Status() {
                 ))}
               </div>
 
-              {/* Progress Bar */}
+              {/* Progress Bar Animada */}
               <div>
                 <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
                   <div
-                    className="bg-gradient-to-r from-purple-600 to-pink-600 h-full transition-all duration-500"
-                    style={{ width: `${((currentStep + 1) / JOB_STEPS.length) * 100}%` }}
+                    className="bg-gradient-to-r from-purple-500 to-pink-500 h-full transition-all duration-300"
+                    style={{
+                      width: `${((currentStep + 1) / JOB_STEPS.length) * 100}%`,
+                    }}
                   />
                 </div>
               </div>
@@ -263,57 +268,34 @@ export default function Status() {
               {/* Info */}
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <p className="text-sm text-blue-900">
-                  <strong>💡 Dica:</strong> Você receberá um email quando sua música estiver pronta. Pode fechar esta página.
+                  ⏱️ A música está sendo processada. Verificaremos a cada 15 segundos se está pronta.
                 </p>
               </div>
 
-              {/* Manual Refresh */}
+              {/* Botões */}
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => refetch()}
+                  size="lg"
+                  className="flex-1 bg-slate-600 hover:bg-slate-700"
+                  onClick={() => window.location.reload()}
                 >
-                  <Loader2 className="w-4 h-4 mr-2" />
-                  Atualizar Agora
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Atualizar Página
                 </Button>
                 <Button
+                  size="lg"
                   variant="outline"
-                  size="sm"
-                  className="text-xs"
+                  className="flex-1 text-xs"
                   onClick={async () => {
-                    try {
-                      const response = await fetch(`/api/webhook/test?jobId=${jobId}`, {
-                        method: "POST",
-                      });
-                      if (response.ok) {
-                        console.log("[Status] Webhook test triggered, refetching...");
-                        setTimeout(() => refetch(), 1000);
-                      }
-                    } catch (error) {
-                      console.error("[Status] Webhook test failed:", error);
+                    const result = await trpc.jobs.getStatus.query({ jobId });
+                    if (result.status === "DONE" && result.song) {
+                      setSong(result.song);
+                      setIsReady(true);
                     }
                   }}
                 >
                   🧪 Simular Webhook (Dev)
                 </Button>
-                {status?.song?.shareSlug ? (
-                  <Button
-                    className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"
-                    onClick={() => setLocation(`/m/${status.song!.shareSlug}`)}
-                  >
-                    <Music className="w-4 h-4 mr-2" />
-                    Ir para Download
-                  </Button>
-                ) : (
-                  <Button
-                    className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"
-                    disabled
-                  >
-                    <Music className="w-4 h-4 mr-2" />
-                    Ir para Download (Aguarde)
-                  </Button>
-                )}
               </div>
             </div>
           </CardContent>

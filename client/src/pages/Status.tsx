@@ -13,10 +13,14 @@ export default function Status() {
 
   const [currentStep, setCurrentStep] = useState(0);
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [hasFinished, setHasFinished] = useState(false);
 
   const { data: status, isLoading, refetch } = trpc.jobs.getStatus.useQuery(
     { jobId: jobId || "" },
-    { enabled: !!jobId, refetchInterval: autoRefresh ? 3000 : false }
+    { 
+      enabled: !!jobId && !hasFinished, 
+      refetchInterval: autoRefresh && !hasFinished ? 3000 : false 
+    }
   );
 
   // Sincronizar steps com status real
@@ -35,8 +39,10 @@ export default function Status() {
     } else if (status.status === "DONE") {
       setCurrentStep(JOB_STEPS.length - 1);
       setAutoRefresh(false);
+      setHasFinished(true);
     } else if (status.status === "FAILED") {
       setAutoRefresh(false);
+      setHasFinished(true);
     }
   }, [status?.status]);
 

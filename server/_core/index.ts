@@ -41,6 +41,7 @@ async function startServer() {
       "style-src 'self' 'unsafe-inline'; " +
       "img-src 'self' data: https:; " +
       "font-src 'self' data:; " +
+      "media-src 'self' https://musicfile.api.box; " +
       "connect-src 'self' https:; " +
       "frame-ancestors 'none'; " +
       "base-uri 'self'; " +

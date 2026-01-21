@@ -26,6 +26,7 @@ const createJobSchema = z.object({
   title: z.string().min(1, "Título da música é obrigatório"),
   occasion: z.string().optional(),
   mood: z.enum(MOODS as unknown as [string, ...string[]]).optional(),
+  voiceGender: z.enum(["Masculina", "Feminina"]).optional(),
   email: z.string().email("Email inválido"),
   agreedToTerms: z.boolean().refine(v => v === true, "Você deve concordar com os termos"),
 });
@@ -51,6 +52,7 @@ export default function Create() {
 
   const style = watch("style");
   const mood = watch("mood");
+  const voiceGender = watch("voiceGender");
   const agreedToTerms = watch("agreedToTerms");
 
   const onSubmit = async (data: CreateJobInput) => {
@@ -177,11 +179,34 @@ export default function Create() {
                   <SelectContent>
                     {MOODS.map((m) => (
                       <SelectItem key={m} value={m}>
-                        {m}
+                        {m === "Épico" ? "🔥" : m === "Alegre" ? "😊" : m === "Romântico" ? "💕" : m === "Nostálgico" ? "🌅" : m === "Inspirador" ? "⭐" : m === "Calmo/Relaxante" ? "🧘" : m === "Energético" ? "⚡" : m === "Melancólico" ? "🌧️" : m === "Motivacional" ? "💪" : m === "Sensual" ? "🌹" : "🎭"} {m}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* Gênero da Voz */}
+              <div className="space-y-2">
+                <Label htmlFor="voiceGender" className="font-semibold">
+                  Gênero da Voz (Opcional)
+                </Label>
+                <Select value={voiceGender || ""} onValueChange={(value) => setValue("voiceGender", value as any)}>
+                  <SelectTrigger className="border-slate-300">
+                    <SelectValue placeholder="Selecione o gênero da voz" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Masculina">
+                      🎤 Voz Masculina
+                    </SelectItem>
+                    <SelectItem value="Feminina">
+                      🎤 Voz Feminina
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-slate-500">
+                  Escolha se prefere que a música seja cantada com voz masculina ou feminina
+                </p>
               </div>
 
               {/* Email */}

@@ -24,11 +24,25 @@ export const MUSIC_STYLES = [
   "Hip Hop",
   "Eletrônica",
   "Bolero",
+  "Reggae",
 ] as const;
 
 export type MusicStyle = (typeof MUSIC_STYLES)[number];
 
-export const MOODS = ["Emocionante", "Alegre", "Engraçado", "Épico"] as const;
+export const MOODS = [
+  "Emocionante", 
+  "Alegre", 
+  "Engraçado", 
+  "Épico", 
+  "Romântico", 
+  "Nostálgico", 
+  "Inspirador", 
+  "Calmo/Relaxante", 
+  "Energético", 
+  "Melancólico", 
+  "Motivacional", 
+  "Sensual"
+] as const;
 
 export type Mood = (typeof MOODS)[number];
 
@@ -49,6 +63,7 @@ export interface CreateJobPayload {
   names: string;
   occasion?: string;
   mood?: Mood;
+  voiceGender?: "Masculina" | "Feminina";
   email: string;
   agreedToTerms: boolean;
 }

@@ -47,7 +47,6 @@ export interface SunoTaskDetails {
 }
 
 const SUNO_API_BASE = "https://api.sunoapi.org";
-const SUNO_API_KEY = process.env.SUNO_API_KEY;
 
 import { nanoid } from "nanoid";
 
@@ -67,6 +66,7 @@ export async function generateMusicWithSuno(
     return `test-${nanoid(8)}`;
   }
 
+  const SUNO_API_KEY = process.env.SUNO_API_KEY;
   if (!SUNO_API_KEY) {
     console.error("[Suno] API Key not configured");
     return null;
@@ -143,6 +143,7 @@ export async function generateMusicWithSuno(
 
 export async function getSunoTaskDetails(taskId: string): Promise<SunoTaskDetails | null> {
   // Try to fetch from Suno API with fallback endpoints
+  const SUNO_API_KEY = process.env.SUNO_API_KEY;
   if (!SUNO_API_KEY) {
     console.error("[Suno] API Key not configured");
     return null;

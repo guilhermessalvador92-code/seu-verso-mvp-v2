@@ -176,24 +176,27 @@ export default function Status() {
 
                     {currentSong.audioUrl && (
                       <div>
-                        <h4 className="font-medium text-slate-900 mb-2">Ouvir</h4>
+                        <h4 className="font-medium text-slate-900 mb-2">🎵 Ouvir Agora</h4>
                         <audio 
                           controls 
                           className="w-full mb-4" 
-                          preload="metadata"
+                          preload="auto"
+                          autoPlay={index === 0}
                           onError={(e) => {
                             console.error('Erro no audio:', e);
                             console.log('URL do audio:', currentSong.audioUrl);
                           }}
                         >
                           <source src={currentSong.audioUrl} type="audio/mpeg" />
+                          <source src={currentSong.audioUrl} type="audio/mp4" />
+                          <source src={currentSong.audioUrl} type="audio/wav" />
                           Seu navegador não suporta o elemento de áudio.
                         </audio>
                         
                         {/* Botão de Download Grande */}
                         <Button
                           size="lg"
-                          className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+                          className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold py-3"
                           onClick={() => {
                             const link = document.createElement("a");
                             link.href = currentSong.audioUrl;
@@ -204,7 +207,7 @@ export default function Status() {
                           }}
                         >
                           <Download className="w-5 h-5 mr-2" />
-                          Baixar Esta Música
+                          💾 Baixar Esta Música
                         </Button>
                       </div>
                     )}

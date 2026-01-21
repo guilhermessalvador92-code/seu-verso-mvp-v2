@@ -105,8 +105,14 @@ INSTRUÇÕES:
 2. Use estrutura musical brasileira (Verso, Pré-Refrão, Refrão)
 3. Conecte emocionalmente com a história pessoal
 4. Mantenha o estilo ${style} autêntico
-5. Use linguagem brasileira natural e acessível
-6. Inclua detalhes específicos da história quando possível
+5. Use APENAS português brasileiro claro e natural
+6. DICÇÃO E ARTICULAÇÃO: Todas as palavras devem ser fáceis de pronunciar e cantar
+7. EVITE: Palavras estrangeiras, gírias complexas, termos difíceis de articular
+8. PERMITA: Apenas termos estrangeiros que já são naturais no português (ex: "love", "baby" se combinarem)
+9. FLUIDEZ: Letra deve ter ritmo natural e métrica consistente
+10. CLAREZA: Cada verso deve transmitir uma ideia clara e emocionante
+11. Inclua detalhes específicos da história quando possível
+12. ORGANIZAÇÃO: Letra deve ter progressão lógica e emocional
 
 FORMATO DE RESPOSTA:
 [Verso 1]

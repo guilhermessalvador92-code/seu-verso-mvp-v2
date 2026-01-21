@@ -144,6 +144,63 @@ export const appRouter = router({
         };
       }),
 
+    forceCheck: publicProcedure
+      .input(z.object({ jobId: z.string() }))
+      .mutation(async ({ input }) => {
+        const job = await getJobById(input.jobId);
+        if (!job) {
+          throw new Error("Job não encontrado");
+        }
+
+        console.log("[ForceCheck] Forcing check for job:", input.jobId);
+
+        if (job.status === "PROCESSING" && job.sunoTaskId) {
+          // Importar e usar a função de polling diretamente
+          const { getSunoTaskDetails } = await import("./suno");
+          
+          try {
+            const taskDetails = await getSunoTaskDetails(job.sunoTaskId);
+            
+            if (taskDetails?.data?.status === "complete" || taskDetails?.data?.status === "success") {
+              const audioUrl = taskDetails.data?.audioUrl || taskDetails.data?.audioUrls?.[0];
+              const lyrics = taskDetails.data?.lyrics || "";
+              const title = taskDetails.data?.title || `Música ${input.jobId}`;
+
+              if (audioUrl) {
+                const shareSlug = nanoid(8);
+
+                // Criar música
+                await createSong({
+                  id: nanoid(),
+                  jobId: input.jobId,
+                  title,
+                  lyrics,
+                  audioUrl,
+                  shareSlug,
+                  createdAt: new Date(),
+                });
+
+                // Atualizar status
+                await updateJobStatus(input.jobId, "DONE");
+
+                console.log("[ForceCheck] Job manually completed:", input.jobId);
+                return { success: true, status: "DONE", message: "Música encontrada e atualizada!" };
+              }
+            } else if (taskDetails?.data?.status === "failed" || taskDetails?.data?.status === "error") {
+              await updateJobStatus(input.jobId, "FAILED");
+              return { success: false, status: "FAILED", message: "Música falhou na geração" };
+            } else {
+              return { success: true, status: job.status, message: `Status atual: ${taskDetails?.data?.status || "checking"}` };
+            }
+          } catch (error) {
+            console.error("[ForceCheck] Error checking Suno:", error);
+            return { success: false, message: "Erro ao verificar Suno API" };
+          }
+        }
+
+        return { success: true, status: job.status, message: "Nada para verificar" };
+      }),
+
     getSongBySlug: publicProcedure
       .input(z.object({ slug: z.string() }))
       .query(async ({ input }) => {

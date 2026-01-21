@@ -17,43 +17,43 @@ export default function Status() {
   const [lastCheck, setLastCheck] = useState<Date | null>(null);
   const [song, setSong] = useState<any>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [enablePolling, setEnablePolling] = useState(true);
 
-  // Polling a cada 15 segundos para verificar se está pronto
+  // Use tRPC query with proper React Query integration
+  const { data: status, error, refetch } = trpc.jobs.getStatus.useQuery(
+    { jobId: jobId || "" },
+    { 
+      enabled: !!jobId && enablePolling && !isReady && !isFailed,
+      refetchInterval: 15000, // 15 seconds
+      retry: false
+    }
+  );
+
+  // Test webhook mutation
+  const testWebhookMutation = trpc.jobs.testWebhook.useMutation();
+
+  // Process status changes
   useEffect(() => {
-    if (!jobId || isReady || isFailed) return;
+    if (!status) return;
 
-    const checkStatus = async () => {
-      try {
-        const result = await trpc.jobs.getStatus.query({ jobId });
-        
-        console.log("[Status] Check result:", {
-          status: result.status,
-          hasSong: !!result.song,
-          timestamp: new Date().toLocaleTimeString(),
-        });
+    console.log("[Status] Status update:", {
+      status: status.status,
+      hasSong: !!status.song,
+      timestamp: new Date().toLocaleTimeString(),
+    });
 
-        if (result.status === "DONE" && result.song) {
-          setSong(result.song);
-          setIsReady(true);
-          setCurrentStep(JOB_STEPS.length - 1);
-        } else if (result.status === "FAILED") {
-          setIsFailed(true);
-        }
+    if (status.status === "DONE" && status.song) {
+      setSong(status.song);
+      setIsReady(true);
+      setEnablePolling(false);
+      setCurrentStep(JOB_STEPS.length - 1);
+    } else if (status.status === "FAILED") {
+      setIsFailed(true);
+      setEnablePolling(false);
+    }
 
-        setLastCheck(new Date());
-      } catch (error) {
-        console.error("[Status] Error checking status:", error);
-      }
-    };
-
-    // Check inicial
-    checkStatus();
-
-    // Check a cada 15 segundos
-    const interval = setInterval(checkStatus, 15000);
-
-    return () => clearInterval(interval);
-  }, [jobId, isReady, isFailed]);
+    setLastCheck(new Date());
+  }, [status]);
 
   // Animação contínua enquanto processando
   useEffect(() => {
@@ -287,12 +287,17 @@ export default function Status() {
                   variant="outline"
                   className="flex-1 text-xs"
                   onClick={async () => {
-                    const result = await trpc.jobs.getStatus.query({ jobId });
-                    if (result.status === "DONE" && result.song) {
-                      setSong(result.song);
-                      setIsReady(true);
+                    try {
+                      await testWebhookMutation.mutateAsync({ jobId: jobId || "" });
+                      // Wait a bit then refetch
+                      setTimeout(() => {
+                        refetch();
+                      }, 1000);
+                    } catch (error) {
+                      console.error("Webhook simulation failed:", error);
                     }
                   }}
+                  disabled={testWebhookMutation.isLoading}
                 >
                   🧪 Simular Webhook (Dev)
                 </Button>

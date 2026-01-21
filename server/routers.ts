@@ -112,8 +112,20 @@ export const appRouter = router({
           throw new Error("Job não encontrado");
         }
 
+        console.log("[Router] getStatus called:", {
+          jobId: input.jobId,
+          jobStatus: job.status,
+        });
+
         if (job.status === "DONE") {
           const song = await getSongByJobId(input.jobId);
+          console.log("[Router] Song lookup result:", {
+            found: !!song,
+            songId: song?.id,
+            title: song?.title,
+            shareSlug: song?.shareSlug,
+          });
+
           if (song) {
             return {
               status: "DONE",

@@ -19,19 +19,24 @@ export default function Status() {
     { enabled: !!jobId, refetchInterval: autoRefresh ? 3000 : false }
   );
 
+  // Sincronizar steps com status real
   useEffect(() => {
-    if (status?.status === "DONE") {
-      setAutoRefresh(false);
-    }
-  }, [status?.status]);
+    if (!status) return;
 
-  useEffect(() => {
-    // Simular progresso visual
-    if (status?.status === "PROCESSING") {
+    if (status.status === "QUEUED") {
+      setCurrentStep(0);
+    } else if (status.status === "PROCESSING") {
+      // Animar enquanto está processando
+      setCurrentStep(1);
       const interval = setInterval(() => {
-        setCurrentStep((prev) => (prev < JOB_STEPS.length - 1 ? prev + 1 : prev));
-      }, 2000);
+        setCurrentStep((prev) => (prev < JOB_STEPS.length - 2 ? prev + 1 : JOB_STEPS.length - 2));
+      }, 1500);
       return () => clearInterval(interval);
+    } else if (status.status === "DONE") {
+      setCurrentStep(JOB_STEPS.length - 1);
+      setAutoRefresh(false);
+    } else if (status.status === "FAILED") {
+      setAutoRefresh(false);
     }
   }, [status?.status]);
 

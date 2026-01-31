@@ -1,0 +1,16 @@
+{
+  "query": "SELECT j.id, j.status, s.title, s.audioUrl FROM jobs j LEFT JOIN songs s ON j.id = s.jobId WHERE j.id = 'WpR_FekoSEykuF045ATtg';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2WoMmgAVQngHs1c.root --database JUytjrxpDuMzcewywYRDnZ --execute SELECT j.id, j.status, s.title, s.audioUrl FROM jobs j LEFT JOIN songs s ON j.id = s.jobId WHERE j.id = 'WpR_FekoSEykuF045ATtg';",
+  "rows": [
+    {
+      "id": "WpR_FekoSEykuF045ATtg",
+      "status": "PROCESSING",
+      "title": "NULL",
+      "audioUrl": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tstatus\ttitle\taudioUrl\nWpR_FekoSEykuF045ATtg\tPROCESSING\tNULL\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 358
+}

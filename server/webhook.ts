@@ -408,7 +408,12 @@ export async function handleSunoCallback(req: Request, res: Response) {
       const lead = await getLeadByJobId(jobId);
       if (lead && lead.email && firstSong) {
         console.log("[Webhook] Queuing music ready email for:", lead.email);
-        queueMusicReadyEmail(lead.email || '', jobId, firstSong.shareSlug || '', firstSong.title || 'Sua Música').catch(
+        queueMusicReadyEmail(
+          lead.email || '',
+          jobId,
+          firstSong.title || 'Sua Música',
+          firstSong.shareSlug || ''
+        ).catch(
           (error) => {
             console.error("[Webhook] Failed to queue email:", error);
           }

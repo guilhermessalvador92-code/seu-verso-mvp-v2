@@ -9,6 +9,7 @@ import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { handleSunoCallback, webhookHealthCheck, webhookTest } from "../webhook";
 import { getJobById, getSongsByJobId } from "../db";
+import { startEmailQueueWorker } from "../email-retry";
 import path from "path";
 
 function isPortAvailable(port: number): Promise<boolean> {
@@ -111,6 +112,9 @@ async function startServer() {
   console.log(`[Webhook] Suno callback URL: ${appUrl}/api/webhook/suno`);
   console.log(`[Webhook] Health check URL: ${appUrl}/api/webhook/health`);
   console.log(`[Webhook] Test endpoint URL: ${appUrl}/api/webhook/test`);
+  
+  // Iniciar worker de processamento de email
+  startEmailQueueWorker(30000); // Processar emails a cada 30 segundos
   
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);

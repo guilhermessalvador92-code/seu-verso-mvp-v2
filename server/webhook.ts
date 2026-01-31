@@ -29,6 +29,7 @@ import { getJobById, getJobBySunoTaskId, updateJobStatus, createSong, getLeadByJ
 import { queueMusicReadyEmail } from "./email-queue-integration";
 import { nanoid } from "nanoid";
 import { getSunoTaskDetails } from "./suno";
+import { enhanceLyrics } from "./_core/gemini";
 
 /**
  * Estrutura do callback da Suno API
@@ -156,11 +157,7 @@ function validateSunoCallback(data: any): data is SunoCallbackRequest {
     typeof data.msg === "string" &&
     data.data &&
     typeof data.data.task_id === "string" &&
-    // callbacks de música trazem callbackType + musicData; callbacks de capa trazem images
-    (
-      typeof data.data.callbackType === "string" ||
-      Array.isArray((data.data as any).images)
-    )
+    typeof data.data.callbackType === "string"
   );
 }
 
@@ -266,7 +263,7 @@ export async function handleSunoCallback(req: Request, res: Response) {
     }
 
     const { code, msg, data } = req.body;
-    const { callbackType, task_id, data: musicData, images } = data;
+    const { callbackType, task_id, data: musicData } = data;
 
     // Verificar se é erro
     if (code !== 200) {
@@ -287,46 +284,7 @@ export async function handleSunoCallback(req: Request, res: Response) {
       });
     }
 
-    // Processar sucesso
-    // 1) Callback de CAPA (images)
-    if (Array.isArray(images) && images.length > 0) {
-      try {
-        if (isTaskAlreadyProcessed(task_id)) {
-          console.log("[Webhook] Cover task already processed, skipping", task_id);
-          return res.status(200).json({ success: true, alreadyProcessed: true });
-        }
-
-        const job = await getJobBySunoTaskId(task_id);
-        if (!job) {
-          console.error("[Webhook] No job found for cover task_id:", task_id);
-          return res.status(404).json({ success: false, error: "Job not found for cover task" });
-        }
-
-        const shareSlug = nanoid(16);
-        const placeholderAudio = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
-
-        await createSong({
-          id: nanoid(),
-          jobId: job.id,
-          title: "Capa gerada",
-          lyrics: "Capa gerada via Suno cover endpoint.",
-          audioUrl: placeholderAudio,
-          imageUrl: images[0],
-          shareSlug,
-          createdAt: new Date(),
-        });
-
-        await updateJobStatus(job.id, "DONE");
-        markTaskProcessed(task_id);
-
-        return res.status(200).json({ success: true, processed: "cover", jobId: job.id, shareSlug });
-      } catch (error) {
-        console.error("[Webhook] Error processing cover callback", error);
-        return res.status(500).json({ success: false, error: "Failed to process cover callback" });
-      }
-    }
-
-    // 2) Callback de MÚSICA
+    // Processar sucesso    // Callback de MÚSICA
     if (callbackType === "complete" || callbackType === "first") {
       try {
         if (!musicData || !Array.isArray(musicData) || musicData.length === 0) {
@@ -388,8 +346,8 @@ export async function handleSunoCallback(req: Request, res: Response) {
                 story: lead.story,
                 style: lead.style,
                 title: title,
-                occasion: lead.occasion,
-                mood: lead.mood,
+                occasion: lead.occasion || undefined,
+                mood: lead.mood || undefined,
                 originalLyrics: songLyrics,
               });
               
@@ -450,7 +408,7 @@ export async function handleSunoCallback(req: Request, res: Response) {
       const lead = await getLeadByJobId(jobId);
       if (lead && lead.email && firstSong) {
         console.log("[Webhook] Queuing music ready email for:", lead.email);
-        queueMusicReadyEmail(lead.email, jobId, firstSong.shareSlug, firstSong.title).catch(
+        queueMusicReadyEmail(lead.email || '', jobId, firstSong.shareSlug || '', firstSong.title || 'Sua Música').catch(
           (error) => {
             console.error("[Webhook] Failed to queue email:", error);
           }

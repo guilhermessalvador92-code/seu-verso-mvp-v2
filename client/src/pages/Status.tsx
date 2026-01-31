@@ -30,8 +30,7 @@ export default function Status() {
     }
   );
 
-  // Test webhook mutation
-  const testWebhookMutation = trpc.jobs.testWebhook.useMutation();
+  // Test webhook mutation (removed - not available in router)
 
   // Process status changes
   useEffect(() => {
@@ -43,14 +42,9 @@ export default function Status() {
       timestamp: new Date().toLocaleTimeString(),
     });
 
-    if (status.status === "DONE" && (status.song || status.songs)) {
-      if (status.songs && status.songs.length > 0) {
-        setSongs(status.songs);
-        setSong(status.songs[0]); // For compatibility
-      } else if (status.song) {
-        setSong(status.song);
-        setSongs([status.song]); // Wrap single song in array
-      }
+    if (status.status === "DONE" && status.song) {
+      setSong(status.song);
+      setSongs([status.song]); // Wrap single song in array
       setIsReady(true);
       setEnablePolling(false);
       setCurrentStep(JOB_STEPS.length - 1);

@@ -230,20 +230,20 @@ export async function getSunoTaskDetails(taskId: string): Promise<SunoTaskDetail
     
     // Return a completed mock task
     return {
-      id: taskId,
-      status: "complete",
-      gpt_description_prompt: "Mock music generated",
-      prompt: "Mock prompt",
-      title: "Mock Music",
-      image_url: "https://via.placeholder.com/300",
-      lyric: "Mock lyrics for testing",
-      audio_url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3", // Public test MP3
-      video_url: null,
-      created_at: new Date().toISOString(),
-      model_name: "mock-model",
-      duration: 180,
-      tags: "mock, test",
-      error_message: null,
+      code: 200,
+      msg: "success",
+      data: {
+        taskId: taskId,
+        status: "complete",
+        gpt_description_prompt: "Mock music generated",
+        prompt: "Mock prompt",
+        title: "Mock Music",
+        imageUrl: "https://via.placeholder.com/300",
+        lyrics: "Mock lyrics for testing",
+        audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+        duration: 180,
+        tags: "mock, test",
+      },
     };
   }
 

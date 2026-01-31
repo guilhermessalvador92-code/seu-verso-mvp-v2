@@ -149,15 +149,6 @@ export const appRouter = router({
           if (songs.length > 0) {
             return {
               status: "DONE",
-              songs: songs.map(song => ({
-                shareSlug: song.shareSlug || "",
-                audioUrl: song.audioUrl || "",
-                lyrics: song.lyrics || "",
-                title: song.title || "",
-                duration: song.duration || 0,
-                id: song.id,
-              })),
-              // Keep first song as main song for compatibility
               song: {
                 shareSlug: songs[0].shareSlug || "",
                 audioUrl: songs[0].audioUrl || "",

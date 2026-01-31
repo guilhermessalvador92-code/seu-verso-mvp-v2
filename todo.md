@@ -98,9 +98,11 @@
 - [x] Validar fluxo completo (teste com curl bem-sucedido)
 
 
-## Database Migration Fix - Produção (Nova Sessão)
+## Database Migration Fix - Produção (Nova Sessão - RESOLVIDO)
 - [x] Corrigir inicialização do banco de dados em produção
 - [x] Adicionar retry logic e delay no email queue worker
 - [x] Adicionar logs detalhados para debug
+- [x] Criar módulo db-init.ts com inicialização síncrona
+- [x] Integrar inicialização no servidor ANTES de qualquer worker
 - [x] Testar em desenvolvimento
 - [x] Fazer checkpoint final

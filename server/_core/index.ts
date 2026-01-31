@@ -10,11 +10,9 @@ import { serveStatic, setupVite } from "./vite";
 import { handleSunoCallback, webhookHealthCheck, webhookTest } from "../webhook";
 import { getJobById, getSongsByJobId } from "../db";
 import { startEmailQueueWorker } from "../email-retry";
+import { initializeDatabaseSchema } from "../db-init";
 import path from "path";
 import { fileURLToPath } from "url";
-import { getDb } from "../db";
-import mysql from "mysql2/promise";
-import fs from "fs";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -32,11 +30,28 @@ async function findAvailablePort(startPort: number): Promise<number> {
       return port;
     }
   }
-  // If no port found, return the preferred port anyway (will fail with clear error on bind)
   return startPort;
 }
 
 async function startServer() {
+  // CRITICAL: Initialize database schema FIRST, before anything else
+  console.log("[Server] Starting initialization sequence...");
+  console.log("[Server] Step 1: Initializing database schema...");
+  
+  try {
+    const schemaInitialized = await initializeDatabaseSchema();
+    if (!schemaInitialized) {
+      console.warn("[Server] ⚠️  Database schema initialization had issues, but continuing...");
+    } else {
+      console.log("[Server] ✅ Database schema initialized successfully");
+    }
+  } catch (error) {
+    console.error("[Server] ❌ Database initialization failed:", error);
+    // Continue anyway - the server can still start
+  }
+
+  // Now initialize Express
+  console.log("[Server] Step 2: Initializing Express server...");
   const app = express();
   const server = createServer(app);
   
@@ -64,6 +79,7 @@ async function startServer() {
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
+  
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
   
@@ -81,7 +97,7 @@ async function startServer() {
     })
   );
 
-  // REST status endpoint (sem eval, sem bundler)
+  // REST status endpoint
   app.get("/api/status-simple/:jobId", async (req, res) => {
     try {
       const job = await getJobById(req.params.jobId);
@@ -99,12 +115,12 @@ async function startServer() {
         })) || [],
       });
     } catch (err) {
-      console.error("[Status] Falha ao obter job", err);
+      console.error("[Status] Error getting job", err);
       res.status(500).json({ status: "ERROR" });
     }
   });
 
-  // Página de entrega minimalista sem depender do bundle React
+  // Status page
   app.get("/status/:jobId", (req, res, next) => {
     const currentDir = import.meta.dirname || path.dirname(fileURLToPath(import.meta.url)) || process.cwd();
     const statusPath = path.resolve(currentDir, "../public/status.html");
@@ -112,90 +128,40 @@ async function startServer() {
       if (err) next();
     });
   });
-  // development mode uses Vite, production mode uses static files
-  // Log webhook URL
+
+  // Log webhook URLs
   const appUrl = process.env.APP_URL || `http://localhost:${process.env.PORT || 3000}`;
-  console.log(`[Webhook] Suno callback URL: ${appUrl}/api/webhook/suno`);
-  console.log(`[Webhook] Health check URL: ${appUrl}/api/webhook/health`);
-  console.log(`[Webhook] Test endpoint URL: ${appUrl}/api/webhook/test`);
+  console.log(`[Server] Webhook URL: ${appUrl}/api/webhook/suno`);
   
-  // Auto-create tables on startup if they don't exist
-  try {
-    console.log("[Database] Initializing database schema...");
-    const DATABASE_URL = process.env.DATABASE_URL;
-    
-    if (DATABASE_URL) {
-      console.log("[Database] DATABASE_URL is configured");
-      const connection = await mysql.createConnection(DATABASE_URL);
-      console.log("[Database] Connection established");
-      
-      const currentDir = import.meta.dirname || path.dirname(fileURLToPath(import.meta.url)) || process.cwd();
-      const sqlPath = path.resolve(currentDir, "../../scripts/init-db.sql");
-      console.log("[Database] SQL file path:", sqlPath);
-      
-      if (fs.existsSync(sqlPath)) {
-        console.log("[Database] SQL file found, reading...");
-        const sql = fs.readFileSync(sqlPath, "utf8");
-        const statements = sql.split(";").filter((s: string) => s.trim());
-        console.log(`[Database] Found ${statements.length} SQL statements to execute`);
-        
-        let successCount = 0;
-        let skipCount = 0;
-        
-        for (let i = 0; i < statements.length; i++) {
-          const statement = statements[i];
-          if (statement.trim()) {
-            try {
-              console.log(`[Database] Executing statement ${i + 1}/${statements.length}...`);
-              await connection.execute(statement);
-              successCount++;
-            } catch (err: any) {
-              // Ignore errors if tables already exist
-              if (err.message.includes("already exists") || err.code === "ER_TABLE_EXISTS_ERROR") {
-                console.log(`[Database] Table already exists (statement ${i + 1}), skipping...`);
-                skipCount++;
-              } else {
-                console.warn(`[Database] SQL warning (statement ${i + 1}):`, err.message.substring(0, 100));
-              }
-            }
-          }
-        }
-        console.log(`[Database] Schema initialization complete! Executed: ${successCount}, Skipped: ${skipCount}`);
-      } else {
-        console.warn("[Database] SQL file not found at", sqlPath);
-      }
-      
-      await connection.end();
-      console.log("[Database] Connection closed");
-    } else {
-      console.warn("[Database] DATABASE_URL not configured, skipping schema initialization");
-    }
-  } catch (err: any) {
-    console.warn("[Database] Initialization warning:", err.message);
-    // Don't fail startup - tables might already exist
-  }
+  // Start email queue worker with delay
+  console.log("[Server] Step 3: Starting email queue worker...");
+  startEmailQueueWorker(30000);
+  console.log("[Server] ✅ Email queue worker started");
   
-  // Iniciar worker de processamento de email
-  console.log("[Server] Starting email queue worker...");
-  startEmailQueueWorker(30000); // Processar emails a cada 30 segundos
-  console.log("[Server] Email queue worker started");
-  
+  // Setup Vite or static files
+  console.log("[Server] Step 4: Setting up frontend...");
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);
   } else {
     serveStatic(app);
   }
 
+  // Find available port and start listening
+  console.log("[Server] Step 5: Starting HTTP server...");
   const preferredPort = parseInt(process.env.PORT || "3000");
   const port = await findAvailablePort(preferredPort);
 
   if (port !== preferredPort) {
-    console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
+    console.log(`[Server] Port ${preferredPort} busy, using ${port}`);
   }
 
   server.listen(port, '0.0.0.0', () => {
-    console.log(`Server running on http://0.0.0.0:${port}/`);
+    console.log(`[Server] ✅ Server running on http://0.0.0.0:${port}/`);
+    console.log(`[Server] ✅ All initialization complete!`);
   });
 }
 
-startServer().catch(console.error);
+startServer().catch(err => {
+  console.error("[Server] ❌ Fatal error:", err);
+  process.exit(1);
+});

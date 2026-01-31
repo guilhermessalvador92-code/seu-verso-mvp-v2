@@ -31,7 +31,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   const db = await getDb();
   if (!db) {
     console.warn("[Database] Cannot upsert user: database not available");
-    return;
+    throw new Error("Database not available");
   }
 
   try {
@@ -76,8 +76,13 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     await db.insert(users).values(values).onDuplicateKeyUpdate({
       set: updateSet,
     });
+    
+    console.log("[Database] ✅ User upserted successfully", { openId: user.openId });
   } catch (error) {
-    console.error("[Database] Failed to upsert user:", error);
+    console.error("[Database] ❌ Failed to upsert user", {
+      openId: user.openId,
+      error: error instanceof Error ? error.message : String(error),
+    });
     throw error;
   }
 }
@@ -97,11 +102,22 @@ export async function getUserByOpenId(openId: string) {
 export async function createJob(data: InsertJob): Promise<Job | undefined> {
   const db = await getDb();
   if (!db) {
+    console.warn("[Database] Using mock storage for job");
     _mockJobs.push(data);
     return data as Job;
   }
-  await db.insert(jobs).values(data);
-  return data as Job;
+  
+  try {
+    await db.insert(jobs).values(data);
+    console.log("[Database] ✅ Job created", { jobId: data.id });
+    return data as Job;
+  } catch (error) {
+    console.error("[Database] ❌ Failed to create job", {
+      jobId: data.id,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
+  }
 }
 
 export async function getJobById(jobId: string): Promise<Job | undefined> {

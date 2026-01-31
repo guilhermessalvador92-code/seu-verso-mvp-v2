@@ -226,9 +226,9 @@ pnpm test
 DATABASE_URL=mysql://user:password@host/database
 
 # APIs
-SUNO_API_KEY=73d18ba8c67eb606d37b41dbd541a5f9
-GEMINI_API_KEY=AIzaSyBUTd8EJ0GtVed6_ZRdrhAbUi3uOjdneyQ
-RESEND_API_KEY=re_xxxxx
+SUNO_API_KEY=your_suno_api_key_here
+GEMINI_API_KEY=your_gemini_api_key_here
+RESEND_API_KEY=your_resend_api_key_here
 
 # Aplicação
 APP_URL=https://seu-verso.com

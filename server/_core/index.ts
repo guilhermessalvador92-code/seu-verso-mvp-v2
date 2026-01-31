@@ -12,6 +12,9 @@ import { getJobById, getSongsByJobId } from "../db";
 import { startEmailQueueWorker } from "../email-retry";
 import path from "path";
 import { fileURLToPath } from "url";
+import { getDb } from "../db";
+import mysql from "mysql2/promise";
+import fs from "fs";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -115,6 +118,46 @@ async function startServer() {
   console.log(`[Webhook] Suno callback URL: ${appUrl}/api/webhook/suno`);
   console.log(`[Webhook] Health check URL: ${appUrl}/api/webhook/health`);
   console.log(`[Webhook] Test endpoint URL: ${appUrl}/api/webhook/test`);
+  
+  // Auto-create tables on startup if they don't exist
+  try {
+    console.log("[Database] Initializing database schema...");
+    const DATABASE_URL = process.env.DATABASE_URL;
+    
+    if (DATABASE_URL) {
+      const connection = await mysql.createConnection(DATABASE_URL);
+      const currentDir = import.meta.dirname || path.dirname(fileURLToPath(import.meta.url)) || process.cwd();
+      const sqlPath = path.resolve(currentDir, "../../scripts/init-db.sql");
+      
+      if (fs.existsSync(sqlPath)) {
+        const sql = fs.readFileSync(sqlPath, "utf8");
+        const statements = sql.split(";").filter((s: string) => s.trim());
+        
+        for (const statement of statements) {
+          if (statement.trim()) {
+            try {
+              await connection.execute(statement);
+            } catch (err: any) {
+              // Ignore errors if tables already exist
+              if (!err.message.includes("already exists")) {
+                console.warn("[Database] SQL warning:", err.message.substring(0, 100));
+              }
+            }
+          }
+        }
+        console.log("[Database] Schema initialized successfully");
+      } else {
+        console.warn("[Database] SQL file not found at", sqlPath);
+      }
+      
+      await connection.end();
+    } else {
+      console.warn("[Database] DATABASE_URL not configured, skipping schema initialization");
+    }
+  } catch (err: any) {
+    console.warn("[Database] Initialization warning:", err.message);
+    // Don't fail startup - tables might already exist
+  }
   
   // Iniciar worker de processamento de email
   startEmailQueueWorker(30000); // Processar emails a cada 30 segundos

@@ -47,7 +47,6 @@ export const songs = mysqlTable("songs", {
   tags: varchar("tags", { length: 255 }),
   modelName: varchar("modelName", { length: 64 }),
   shareSlug: varchar("shareSlug", { length: 128 }).unique(),
-  emailSent: timestamp("emailSent"),
   downloadCount: int("downloadCount").default(0).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
@@ -58,9 +57,9 @@ export type InsertSong = typeof songs.$inferInsert;
 export const leads = mysqlTable("leads", {
   id: varchar("id", { length: 64 }).primaryKey(),
   jobId: varchar("jobId", { length: 64 }).notNull(),
-  email: varchar("email", { length: 320 }).notNull(),
+  whatsapp: varchar("whatsapp", { length: 20 }).notNull(),
+  name: text("name").notNull(),
   style: varchar("style", { length: 64 }).notNull(),
-  names: text("names").notNull(),
   occasion: text("occasion"),
   story: text("story").notNull(),
   mood: varchar("mood", { length: 64 }),
@@ -69,23 +68,3 @@ export const leads = mysqlTable("leads", {
 
 export type Lead = typeof leads.$inferSelect;
 export type InsertLead = typeof leads.$inferInsert;
-
-export const emailQueue = mysqlTable("emailQueue", {
-  id: varchar("id", { length: 64 }).primaryKey(),
-  to: varchar("to", { length: 320 }).notNull(),
-  subject: varchar("subject", { length: 255 }).notNull(),
-  htmlContent: text("htmlContent").notNull(),
-  type: mysqlEnum("type", ["ORDER_CONFIRMATION", "MUSIC_READY", "NOTIFICATION"]).notNull(),
-  jobId: varchar("jobId", { length: 64 }),
-  status: mysqlEnum("status", ["PENDING", "SENT", "FAILED"]).default("PENDING").notNull(),
-  attempts: int("attempts").default(0).notNull(),
-  maxAttempts: int("maxAttempts").default(5).notNull(),
-  nextRetryAt: timestamp("nextRetryAt"),
-  lastError: text("lastError"),
-  sentAt: timestamp("sentAt"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
-
-export type EmailQueue = typeof emailQueue.$inferSelect;
-export type InsertEmailQueue = typeof emailQueue.$inferInsert;

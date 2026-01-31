@@ -7,7 +7,6 @@ import { nanoid } from "nanoid";
 import { createJob, getJobById, updateJobStatus, updateJobSunoTaskId, createSong, getSongsByJobId, getSongBySlug, createLead, incrementDownloadCount } from "./db";
 import { CreateJobPayload, JobStatusResponse, CallbackPayload, MUSIC_STYLES, MOODS } from "@shared/types";
 import { generateMusicWithSuno } from "./suno";
-import { queueOrderConfirmationEmail } from "./email-queue-integration";
 
 export const appRouter = router({
   system: systemRouter,
@@ -31,7 +30,8 @@ export const appRouter = router({
           title: z.string().min(1, "Título da música é obrigatório"),
           occasion: z.string().optional(),
           mood: z.enum(MOODS as unknown as [string, ...string[]]).optional(),
-          email: z.string().email("Email inválido"),
+          name: z.string().min(1, "Nome é obrigatório"),
+          whatsapp: z.string().min(10, "WhatsApp inválido"),
           agreedToTerms: z.boolean().refine(v => v === true, "Você deve concordar com os termos"),
         })
       )
@@ -49,31 +49,24 @@ export const appRouter = router({
             updatedAt: new Date(),
           });
 
-          // 2. Create lead (customer info)
-          console.log("[Jobs] Creating lead for:", input.email);
+          // 2. Create lead (customer info) - APENAS NOME + WHATSAPP
+          console.log("[Jobs] Creating lead for:", input.name, input.whatsapp);
           const lead = await createLead({
             id: nanoid(),
             jobId,
-            email: input.email,
+            whatsapp: input.whatsapp,
+            name: input.name,
             style: input.style,
-            names: input.title,
             occasion: input.occasion,
             story: input.story,
             mood: input.mood,
             createdAt: new Date(),
           });
 
-          // 3. Queue confirmation email
-          if (lead) {
-            queueOrderConfirmationEmail(input.email, jobId, input.title).catch(error => {
-              console.error("[Jobs] Failed to queue confirmation email:", error);
-            });
-          }
-
-          // 4. Update status to PROCESSING
+          // 3. Update status to PROCESSING
           await updateJobStatus(jobId, "PROCESSING");
           
-          // 5. Generate music with Suno (simple prompt)
+          // 4. Generate music with Suno (simple prompt)
           console.log("[Jobs] Sending to Suno API...");
           const appUrl = process.env.APP_URL || "http://localhost:3000";
           const callbackUrl = `${appUrl}/api/webhook/suno`;
@@ -120,7 +113,7 @@ ${input.occasion ? `Occasion: ${input.occasion}` : ''}`;
         try {
           const job = await getJobById(input.jobId);
           if (!job) {
-            return { status: "NOT_FOUND" };
+            return { status: "FAILED" as const };
           }
 
           console.log("[Router] getStatus:", { jobId: input.jobId, status: job.status });

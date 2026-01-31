@@ -9,7 +9,7 @@ import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { handleSunoCallback, webhookHealthCheck, webhookTest } from "../webhook";
 import { getJobById, getSongsByJobId } from "../db";
-import { startEmailQueueWorker } from "../email-retry";
+// Email system removed - using WhatsApp only
 import { initializeDatabaseSchema } from "../db-init";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -133,21 +133,16 @@ async function startServer() {
   const appUrl = process.env.APP_URL || `http://localhost:${process.env.PORT || 3000}`;
   console.log(`[Server] Webhook URL: ${appUrl}/api/webhook/suno`);
   
-  // Start email queue worker with delay
-  console.log("[Server] Step 3: Starting email queue worker...");
-  startEmailQueueWorker(30000);
-  console.log("[Server] ✅ Email queue worker started");
-  
   // Setup Vite or static files
-  console.log("[Server] Step 4: Setting up frontend...");
-  if (process.env.NODE_ENV === "development") {
+  console.log("[Server] Step 3: Setting up frontend...");
+    if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);
   } else {
     serveStatic(app);
   }
 
   // Find available port and start listening
-  console.log("[Server] Step 5: Starting HTTP server...");
+  console.log("[Server] Step 4: Starting HTTP server...");
   const preferredPort = parseInt(process.env.PORT || "3000");
   const port = await findAvailablePort(preferredPort);
 
@@ -158,6 +153,7 @@ async function startServer() {
   server.listen(port, '0.0.0.0', () => {
     console.log(`[Server] ✅ Server running on http://0.0.0.0:${port}/`);
     console.log(`[Server] ✅ All initialization complete!`);
+    console.log(`[Server] 📱 WhatsApp integration ready - Fluxuz will handle messaging`);
   });
 }
 

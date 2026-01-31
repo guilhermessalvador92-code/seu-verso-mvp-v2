@@ -1,10 +1,11 @@
 /**
  * Webhook handler para receber callbacks da Suno API
+ * Salva dados no banco (nome + whatsapp)
+ * Fluxuz (empresa de mensageria) trata o envio de WhatsApp
  */
 
 import { Request, Response } from "express";
 import { getJobById, updateJobStatus, createSong, getLeadByJobId } from "./db";
-import { queueMusicReadyEmail } from "./email-queue-integration";
 import { nanoid } from "nanoid";
 
 export interface SunoMusicData {
@@ -20,6 +21,7 @@ export interface SunoMusicData {
 /**
  * Handle Suno API callback
  * Called when music generation is complete
+ * Salva música no banco com dados do lead (nome + whatsapp)
  */
 export async function handleSunoCallback(req: Request, res: Response) {
   try {
@@ -74,7 +76,7 @@ export async function handleSunoCallback(req: Request, res: Response) {
           });
         }
 
-        // Get lead info for email
+        // Get lead info (nome + whatsapp)
         const lead = await getLeadByJobId(jobId);
 
         // Process first music track
@@ -84,7 +86,13 @@ export async function handleSunoCallback(req: Request, res: Response) {
         const lyrics = music.prompt || "";
         const shareSlug = nanoid(8);
 
-        console.log("[Webhook] Creating song:", { jobId, title, audioUrl });
+        console.log("[Webhook] Creating song:", { 
+          jobId, 
+          title, 
+          audioUrl,
+          leadName: lead?.name,
+          leadWhatsapp: lead?.whatsapp,
+        });
 
         // Create song record
         await createSong({
@@ -105,16 +113,24 @@ export async function handleSunoCallback(req: Request, res: Response) {
         await updateJobStatus(jobId, "DONE");
         console.log("[Webhook] Job marked as DONE:", jobId);
 
-        // Queue music ready email
+        // Log lead info for Fluxuz integration
         if (lead) {
-          queueMusicReadyEmail(lead.email, jobId, title, shareSlug).catch(error => {
-            console.error("[Webhook] Failed to queue music ready email:", error);
+          console.log("[Webhook] Lead info saved:", {
+            jobId,
+            name: lead.name,
+            whatsapp: lead.whatsapp,
+            musicTitle: title,
+            shareSlug,
           });
         }
 
         return res.status(200).json({
           success: true,
           message: "Music processed successfully",
+          leadInfo: lead ? {
+            name: lead.name,
+            whatsapp: lead.whatsapp,
+          } : null,
         });
       } catch (error) {
         console.error("[Webhook] Error processing music:", error);

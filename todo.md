@@ -116,3 +116,13 @@
 - [x] Corrigir imports e tipos TypeScript
 - [x] Testar em desenvolvimento
 - [x] Fazer checkpoint final
+
+## Remove Email System - WhatsApp Only (CONCLUIDO)
+- [x] Remover email-queue-integration.ts
+- [x] Remover email-retry.ts
+- [x] Remover emailQueue da schema
+- [x] Atualizar leads: apenas nome + whatsapp
+- [x] Remover queueOrderConfirmationEmail do routers
+- [x] Remover queueMusicReadyEmail do webhook
+- [x] Testar fluxo completo
+- [x] Fazer checkpoint final

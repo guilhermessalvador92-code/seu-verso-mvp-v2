@@ -77,7 +77,7 @@ async function checkJobStatus(job: PollingJob): Promise<void> {
 
   if (job.retries > MAX_RETRIES) {
     console.error("[Polling] Max retries exceeded for job", { jobId: job.jobId });
-    await updateJobStatus(job.jobId, "FAILED");
+    await updateJobStatus(job.jobId, "FAILED", `Polling timeout: Maximum retries (${MAX_RETRIES}) exceeded after ${MAX_RETRIES * POLLING_INTERVAL / 1000} seconds`);
     removeJobFromPolling(job.jobId);
     return;
   }
@@ -149,15 +149,16 @@ async function checkJobStatus(job: PollingJob): Promise<void> {
       removeJobFromPolling(job.jobId);
     } else {
       console.error("[Polling] No audio URL in task details", { jobId: job.jobId });
-      await updateJobStatus(job.jobId, "FAILED");
+      await updateJobStatus(job.jobId, "FAILED", "Music generation completed but no audio URL was provided");
       removeJobFromPolling(job.jobId);
     }
   } else if (status === "error" || status === "fail") {
+    const errorMessage = taskDetails.data?.error || "Unknown error";
     console.error("[Polling] Task failed", {
       jobId: job.jobId,
-      error: taskDetails.data?.error,
+      error: errorMessage,
     });
-    await updateJobStatus(job.jobId, "FAILED");
+    await updateJobStatus(job.jobId, "FAILED", `Suno task failed: ${errorMessage}`);
     removeJobFromPolling(job.jobId);
   }
   // else: continue polling

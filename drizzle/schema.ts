@@ -29,6 +29,7 @@ export const jobs = mysqlTable("jobs", {
   id: varchar("id", { length: 64 }).primaryKey(),
   status: mysqlEnum("status", ["QUEUED", "PROCESSING", "DONE", "FAILED"]).default("QUEUED").notNull(),
   sunoTaskId: varchar("sunoTaskId", { length: 128 }),
+  failureReason: text("failureReason"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

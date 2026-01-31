@@ -116,7 +116,7 @@ export async function processEmailQueue(config: EmailRetryConfig = DEFAULT_CONFI
 /**
  * Processar retry de um email específico
  */
-async function processEmailRetry(email: EmailQueue, config: EmailRetryConfig = DEFAULT_CONFIG): Promise<void> {
+export async function processEmailRetry(email: EmailQueue, config: EmailRetryConfig = DEFAULT_CONFIG): Promise<void> {
   const db = await getDb();
   if (!db) {
     console.warn("[EmailRetry] Database not available");

@@ -74,93 +74,136 @@ function stopPolling(): void {
 
 async function checkJobStatus(job: PollingJob): Promise<void> {
   job.retries++;
+  job.lastCheck = Date.now();
 
+  // Guard: Max retries exceeded
   if (job.retries > MAX_RETRIES) {
-    console.error("[Polling] Max retries exceeded for job", { jobId: job.jobId });
-    await updateJobStatus(job.jobId, "FAILED");
+    console.error("[Polling] ❌ Max retries exceeded", {
+      jobId: job.jobId,
+      retries: job.retries,
+      duration: `${(job.retries * POLLING_INTERVAL) / 1000}s`,
+    });
+    
+    try {
+      await updateJobStatus(job.jobId, "FAILED");
+    } catch (error) {
+      console.error("[Polling] Failed to update job status to FAILED", { jobId: job.jobId, error });
+    }
+    
     removeJobFromPolling(job.jobId);
     return;
   }
 
-  const taskDetails = await getSunoTaskDetails(job.sunoTaskId);
+  try {
+    const taskDetails = await getSunoTaskDetails(job.sunoTaskId);
 
-  if (!taskDetails) {
-    console.warn("[Polling] Failed to get task details", { jobId: job.jobId, sunoTaskId: job.sunoTaskId });
-    return;
-  }
-
-  const status = taskDetails.data?.status;
-
-  console.log("[Polling] Task status check", {
-    jobId: job.jobId,
-    sunoTaskId: job.sunoTaskId,
-    status,
-    retries: job.retries,
-  });
-
-  if (status === "complete" || status === "success") {
-    // Música pronta!
-    const audioUrl = taskDetails.data?.audioUrl || taskDetails.data?.audioUrls?.[0];
-    const lyrics = taskDetails.data?.lyrics || "";
-    const title = taskDetails.data?.title || `Música para ${job.jobId}`;
-
-    if (audioUrl) {
-      const shareSlug = nanoid(8);
-
-      // Criar registro da música
-      await createSong({
-        id: nanoid(),
+    if (!taskDetails) {
+      console.warn("[Polling] ⚠️ Failed to get task details", {
         jobId: job.jobId,
-        title,
-        lyrics,
-        audioUrl,
-        shareSlug,
-        createdAt: new Date(),
+        sunoTaskId: job.sunoTaskId,
+        retries: job.retries,
       });
+      return; // Will retry on next interval
+    }
 
-      // Atualizar status do job
-      await updateJobStatus(job.jobId, "DONE");
+    const status = taskDetails.data?.status;
 
-      // Enviar email
-      try {
-        const lead = await getLeadByJobId(job.jobId);
-        if (lead) {
-          const appUrl = process.env.APP_URL || "http://localhost:3000";
-          const downloadUrl = `${appUrl}/m/${shareSlug}`;
-          const shareUrl = downloadUrl;
+    console.log("[Polling] 🔍 Task status check", {
+      jobId: job.jobId,
+      sunoTaskId: job.sunoTaskId,
+      status,
+      retries: job.retries,
+    });
 
-          const emailSent = await sendMusicReadyEmail(
-            lead.email,
-            title,
-            downloadUrl,
-            shareUrl,
-            lead.names
-          );
-
-          if (emailSent) {
-            await markEmailSent(job.jobId);
-          }
-        }
-      } catch (error) {
-        console.error("[Polling] Error sending email:", error);
-      }
-
-      console.log("[Polling] Job completed successfully", { jobId: job.jobId });
+    if (status === "complete" || status === "success") {
+      console.log("[Polling] ✅ Task completed successfully", { jobId: job.jobId });
+      
+      // Process completion
+      await handleTaskCompletion(job, taskDetails);
+      
+      // CRITICAL: Remove from polling
       removeJobFromPolling(job.jobId);
-    } else {
-      console.error("[Polling] No audio URL in task details", { jobId: job.jobId });
+      
+    } else if (status === "error" || status === "failed" || status === "fail") {
+      console.error("[Polling] ❌ Task failed", {
+        jobId: job.jobId,
+        error: taskDetails.data?.error,
+      });
+      
       await updateJobStatus(job.jobId, "FAILED");
       removeJobFromPolling(job.jobId);
+      
+    } else {
+      // Still processing - continue polling
+      console.log("[Polling] ⏳ Task still processing", {
+        jobId: job.jobId,
+        status,
+        retries: job.retries,
+      });
     }
-  } else if (status === "error" || status === "fail") {
-    console.error("[Polling] Task failed", {
+    
+  } catch (error) {
+    console.error("[Polling] 💥 Critical error checking job status", {
       jobId: job.jobId,
-      error: taskDetails.data?.error,
+      error: error instanceof Error ? error.message : String(error),
+      retries: job.retries,
     });
-    await updateJobStatus(job.jobId, "FAILED");
-    removeJobFromPolling(job.jobId);
+    
+    // Don't remove immediately on error - might be transient
+    // Will retry on next interval or hit max retries
   }
-  // else: continue polling
+}
+
+// Extract completion handling for clarity
+async function handleTaskCompletion(job: PollingJob, taskDetails: any): Promise<void> {
+  const audioUrl = taskDetails.data?.audioUrl || taskDetails.data?.audioUrls?.[0];
+  const imageUrl = taskDetails.data?.imageUrl;
+  const title = taskDetails.data?.title || "Música Personalizada";
+  const lyrics = taskDetails.data?.lyrics || "";
+
+  if (!audioUrl) {
+    console.warn("[Polling] ⚠️ Task complete but no audio URL", { jobId: job.jobId });
+    await updateJobStatus(job.jobId, "FAILED");
+    return; // Caller will remove from polling
+  }
+
+  const shareSlug = nanoid(8);
+
+  // Criar registro da música
+  await createSong({
+    id: nanoid(),
+    jobId: job.jobId,
+    title,
+    lyrics,
+    audioUrl,
+    shareSlug,
+    createdAt: new Date(),
+  });
+
+  // Atualizar status do job
+  await updateJobStatus(job.jobId, "DONE");
+
+  // Enviar email
+  const lead = await getLeadByJobId(job.jobId);
+  if (lead && lead.email) {
+    const appUrl = process.env.APP_URL || "http://localhost:3000";
+    const shareUrl = `${appUrl}/m/${shareSlug}`;
+    
+    const emailSent = await sendMusicReadyEmail(
+      lead.email,
+      title,
+      shareUrl,
+      shareUrl,
+      lead.names
+    );
+    
+    if (emailSent) {
+      await markEmailSent(job.jobId);
+      console.log("[Polling] 📧 Music ready email sent", { jobId: job.jobId });
+    } else {
+      console.warn("[Polling] ⚠️ Failed to send music ready email", { jobId: job.jobId });
+    }
+  }
 }
 
 // Recuperar jobs pendentes ao iniciar o servidor

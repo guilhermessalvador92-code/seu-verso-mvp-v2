@@ -36,16 +36,17 @@ async function startServer() {
   
   // Content Security Policy header
   app.use((req, res, next) => {
+    const isDev = process.env.NODE_ENV === "development";
     res.setHeader(
       "Content-Security-Policy",
       [
         "default-src 'self'",
-        "script-src 'self'",
+        isDev ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'" : "script-src 'self'",
         "style-src 'self' 'unsafe-inline'",
         "img-src 'self' data: https:",
         "font-src 'self' data:",
         "media-src 'self' https://musicfile.api.box",
-        "connect-src 'self' https://musicfile.api.box",
+        "connect-src 'self' https://musicfile.api.box https://generativelanguage.googleapis.com https://api.sunoapi.org",
         "frame-ancestors 'none'",
         "base-uri 'self'",
         "form-action 'self'",

@@ -137,7 +137,10 @@ export async function updateJobStatus(jobId: string, status: Job["status"], fail
     }
     return;
   }
-  const updateData: Record<string, unknown> = { status, updatedAt: new Date() };
+  const updateData: Partial<typeof jobs.$inferSelect> = { 
+    status, 
+    updatedAt: new Date() 
+  };
   if (failureReason !== undefined) {
     updateData.failureReason = failureReason;
   }

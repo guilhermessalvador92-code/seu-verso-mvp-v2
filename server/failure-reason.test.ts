@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { createJob, updateJobStatus, getJobById } from "./db";
+import { Job } from "../drizzle/schema";
 import { nanoid } from "nanoid";
 
 describe("failureReason functionality", () => {
@@ -26,7 +27,7 @@ describe("failureReason functionality", () => {
     const job = await getJobById(jobId);
     expect(job).toBeDefined();
     expect(job?.status).toBe("FAILED");
-    expect((job as any)?.failureReason).toBe(failureReason);
+    expect(job?.failureReason).toBe(failureReason);
   });
 
   it("should allow failureReason to be undefined for successful jobs", async () => {
@@ -47,7 +48,7 @@ describe("failureReason functionality", () => {
     const job = await getJobById(jobId);
     expect(job).toBeDefined();
     expect(job?.status).toBe("DONE");
-    expect((job as any)?.failureReason).toBeUndefined();
+    expect(job?.failureReason).toBeUndefined();
   });
 
   it("should update failureReason when job status changes from PROCESSING to FAILED", async () => {
@@ -73,7 +74,7 @@ describe("failureReason functionality", () => {
     
     job = await getJobById(jobId);
     expect(job?.status).toBe("FAILED");
-    expect((job as any)?.failureReason).toBe(failureReason);
+    expect(job?.failureReason).toBe(failureReason);
   });
 
   it("should handle different types of failure reasons", async () => {
@@ -96,7 +97,7 @@ describe("failureReason functionality", () => {
       
       const job = await getJobById(testCase.jobId);
       expect(job?.status).toBe("FAILED");
-      expect((job as any)?.failureReason).toBe(testCase.reason);
+      expect(job?.failureReason).toBe(testCase.reason);
     }
   });
 });

@@ -1,0 +1,15 @@
+{
+  "query": "SELECT j.id, s.title, s.audioUrl FROM jobs j INNER JOIN songs s ON j.id = s.jobId WHERE j.status = 'DONE' AND s.audioUrl IS NOT NULL LIMIT 1;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2WoMmgAVQngHs1c.root --database JUytjrxpDuMzcewywYRDnZ --execute SELECT j.id, s.title, s.audioUrl FROM jobs j INNER JOIN songs s ON j.id = s.jobId WHERE j.status = 'DONE' AND s.audioUrl IS NOT NULL LIMIT 1;",
+  "rows": [
+    {
+      "id": "W7q4fY-b6ISKK_St4M-4f",
+      "title": "Test",
+      "audioUrl": "https://s3.amazonaws.com/bucket/music.mp3"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\ttitle\taudioUrl\nW7q4fY-b6ISKK_St4M-4f\tTest\thttps://s3.amazonaws.com/bucket/music.mp3\n",
+  "stderr": "",
+  "execution_time_ms": 355
+}

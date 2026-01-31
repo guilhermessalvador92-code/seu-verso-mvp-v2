@@ -1,74 +1,66 @@
 import { useEffect, useState } from "react";
 import { useRoute, useLocation } from "wouter";
-import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, CheckCircle, AlertCircle, Music, Download } from "lucide-react";
-import { JOB_STEPS } from "@shared/types";
+import { Loader2, CheckCircle, AlertCircle, Download } from "lucide-react";
+
+interface Song {
+  title: string;
+  audioUrl: string;
+  lyrics: string;
+  shareSlug: string;
+}
+
+interface StatusResponse {
+  status: "QUEUED" | "PROCESSING" | "DONE" | "FAILED" | "ERROR";
+  songs?: Song[];
+}
 
 export default function Status() {
   const [match, params] = useRoute("/status/:jobId");
   const [, setLocation] = useLocation();
   const jobId = params?.jobId;
 
-  const [currentStep, setCurrentStep] = useState(0);
-  const [isReady, setIsReady] = useState(false);
-  const [isFailed, setIsFailed] = useState(false);
+  const [status, setStatus] = useState<StatusResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [lastCheck, setLastCheck] = useState<Date | null>(null);
-  const [song, setSong] = useState<any>(null);
-  const [songs, setSongs] = useState<any[]>([]);
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [enablePolling, setEnablePolling] = useState(true);
 
-  // Use tRPC query with proper React Query integration
-  const { data: status, error, refetch } = trpc.jobs.getStatus.useQuery(
-    { jobId: jobId || "" },
-    { 
-      enabled: !!jobId && enablePolling && !isReady && !isFailed,
-      refetchInterval: 15000, // 15 seconds
-      retry: false
+  // Fetch status from REST endpoint
+  const fetchStatus = async () => {
+    if (!jobId) return;
+    
+    try {
+      const response = await fetch(`/api/status-simple/${jobId}`);
+      if (!response.ok) {
+        throw new Error("Falha ao buscar status");
+      }
+      const data: StatusResponse = await response.json();
+      setStatus(data);
+      setLastCheck(new Date());
+      setError(null);
+    } catch (err) {
+      console.error("[Status] Erro ao buscar:", err);
+      setError(err instanceof Error ? err.message : "Erro desconhecido");
+    } finally {
+      setLoading(false);
     }
-  );
+  };
 
-  // Test webhook mutation (removed - not available in router)
-
-  // Process status changes
+  // Initial fetch
   useEffect(() => {
-    if (!status) return;
+    fetchStatus();
+  }, [jobId]);
 
-    console.log("[Status] Status update:", {
-      status: status.status,
-      hasSong: !!status.song,
-      timestamp: new Date().toLocaleTimeString(),
-    });
-
-    if (status.status === "DONE" && status.song) {
-      setSong(status.song);
-      setSongs([status.song]); // Wrap single song in array
-      setIsReady(true);
-      setEnablePolling(false);
-      setCurrentStep(JOB_STEPS.length - 1);
-    } else if (status.status === "FAILED") {
-      setIsFailed(true);
-      setEnablePolling(false);
+  // Poll every 10 seconds while processing
+  useEffect(() => {
+    if (!jobId || status?.status === "DONE" || status?.status === "FAILED") {
+      return;
     }
 
-    setLastCheck(new Date());
-  }, [status]);
-
-  // Animação contínua enquanto processando
-  useEffect(() => {
-    if (isReady || isFailed) return;
-
-    const animationInterval = setInterval(() => {
-      setCurrentStep((prev) => {
-        const maxStep = JOB_STEPS.length - 2;
-        return prev < maxStep ? prev + 1 : 1; // Loop between 1 and max
-      });
-    }, 1000); // Atualiza a cada 1 segundo
-
-    return () => clearInterval(animationInterval);
-  }, [isReady, isFailed]);
+    const interval = setInterval(fetchStatus, 10000);
+    return () => clearInterval(interval);
+  }, [jobId, status?.status]);
 
   if (!match || !jobId) {
     return (
@@ -86,7 +78,40 @@ export default function Status() {
     );
   }
 
-  if (isFailed) {
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white flex items-center justify-center">
+        <Card className="border-slate-200 w-full max-w-md">
+          <CardContent className="pt-6 text-center">
+            <Loader2 className="w-12 h-12 text-purple-600 mx-auto mb-4 animate-spin" />
+            <p className="text-slate-900 font-semibold">Carregando...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white flex items-center justify-center">
+        <Card className="border-slate-200 w-full max-w-md">
+          <CardContent className="pt-6 text-center">
+            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <p className="text-slate-900 font-semibold mb-2">Erro</p>
+            <p className="text-slate-600 mb-4">{error}</p>
+            <Button onClick={fetchStatus} className="bg-purple-600 hover:bg-purple-700">
+              Tentar Novamente
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Failed state
+  if (status?.status === "FAILED") {
     return (
       <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-12">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -128,58 +153,98 @@ export default function Status() {
     );
   }
 
-  if (isReady && songs.length > 0) {
-    // Pega a primeira música disponível (ou única música)
-    const firstSong = songs[0];
-    
-    // Debug: Log do objeto da música para verificar estrutura
-    console.log("[Status] First song object:", firstSong);
-    console.log("[Status] Audio URL:", firstSong?.audioUrl);
-    console.log("[Status] All songs:", songs);
-    
-    // Busca pela URL do áudio em diferentes propriedades possíveis
-    const audioUrl = firstSong?.audioUrl || firstSong?.audio_url || firstSong?.url || firstSong?.file_url;
+  // Success state - show music player
+  if (status?.status === "DONE" && status.songs && status.songs.length > 0) {
+    const song = status.songs[0];
     
     return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white flex items-center justify-center py-12">
-        <div className="max-w-md mx-auto px-4">
-          {audioUrl ? (
-            <div className="text-center">
-              <audio 
-                controls 
-                className="w-full shadow-xl rounded-lg" 
-                preload="auto"
-                autoPlay
-                onError={(e) => {
-                  console.error('Erro no audio:', e);
-                  console.log('URL do audio tentada:', audioUrl);
-                  console.log('Objeto completo da música:', firstSong);
-                }}
-                onLoadStart={() => {
-                  console.log('[Status] Audio começou a carregar');
-                }}
-                onCanPlay={() => {
-                  console.log('[Status] Audio pode começar a tocar');
-                }}
-              >
-                <source src={audioUrl} type="audio/mpeg" />
-                <source src={audioUrl} type="audio/mp4" />
-                <source src={audioUrl} type="audio/wav" />
-                Seu navegador não suporta o elemento de áudio.
-              </audio>
-            </div>
-          ) : (
-            <div className="text-center text-red-600">
-              <p>Erro: URL do áudio não encontrada</p>
-              <p className="text-sm mt-2">Debug: {JSON.stringify(firstSong, null, 2)}</p>
-            </div>
-          )}
+      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-12">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+          <Card className="border-slate-200 shadow-lg">
+            <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b border-slate-200">
+              <div className="flex items-center gap-3 mb-4">
+                <CheckCircle className="w-8 h-8 text-green-600" />
+                <div>
+                  <CardTitle className="text-2xl">Sua Música Está Pronta!</CardTitle>
+                  <CardDescription>Aproveite e compartilhe</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-8">
+              <div className="space-y-6">
+                {/* Song Title */}
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900 mb-2">{song.title}</h3>
+                </div>
+
+                {/* Audio Player */}
+                <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                  <audio 
+                    controls 
+                    className="w-full" 
+                    preload="auto"
+                    controlsList="nodownload"
+                  >
+                    <source src={song.audioUrl} type="audio/mpeg" />
+                    <source src={song.audioUrl} type="audio/mp4" />
+                    <source src={song.audioUrl} type="audio/wav" />
+                    Seu navegador não suporta o elemento de áudio.
+                  </audio>
+                </div>
+
+                {/* Download Button */}
+                <div>
+                  <a
+                    href={song.audioUrl}
+                    download={`${song.title}.mp3`}
+                    className="inline-flex items-center justify-center gap-2 w-full px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors"
+                  >
+                    <Download className="w-5 h-5" />
+                    Baixar Música
+                  </a>
+                </div>
+
+                {/* Lyrics */}
+                {song.lyrics && (
+                  <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                    <h4 className="font-semibold text-slate-900 mb-3">Letra</h4>
+                    <pre className="text-sm text-slate-700 whitespace-pre-wrap font-sans max-h-64 overflow-y-auto">
+                      {song.lyrics}
+                    </pre>
+                  </div>
+                )}
+
+                {/* Share */}
+                <div className="flex gap-3 pt-4">
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => setLocation("/")}
+                  >
+                    Criar Outra
+                  </Button>
+                  <Button
+                    size="lg"
+                    className="flex-1 bg-purple-600 hover:bg-purple-700"
+                    onClick={() => {
+                      const text = `Criei uma música personalizada no Seu Verso! 🎵\n${song.title}`;
+                      const url = window.location.href;
+                      window.open(`https://wa.me/?text=${encodeURIComponent(text + "\n" + url)}`, "_blank");
+                    }}
+                  >
+                    Compartilhar
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
   }
 
-  // Processando - Animação em loop
+  // Processing state
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-12">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -199,52 +264,29 @@ export default function Status() {
           </CardHeader>
           <CardContent className="pt-8">
             <div className="space-y-8">
-              {/* Steps com animação em loop */}
-              <div className="space-y-4">
-                {JOB_STEPS.map((step, index) => (
-                  <div key={step.key} className="flex items-start gap-4">
-                    <div
-                      className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all ${
-                        index < currentStep
-                          ? "bg-green-100 text-green-700"
-                          : index === currentStep
-                          ? "bg-purple-100 text-purple-700 animate-pulse"
-                          : "bg-slate-100 text-slate-500"
-                      }`}
-                    >
-                      {index < currentStep ? "✓" : index + 1}
-                    </div>
-                    <div className="flex-1 pt-1">
-                      <p
-                        className={`font-semibold transition-colors ${
-                          index <= currentStep ? "text-slate-900" : "text-slate-500"
-                        }`}
-                      >
-                        {step.label}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+              {/* Loading Animation */}
+              <div className="flex justify-center">
+                <Loader2 className="w-16 h-16 text-purple-600 animate-spin" />
               </div>
 
-              {/* Progress Bar Animada */}
-              <div>
-                <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
-                  <div
-                    className="bg-gradient-to-r from-purple-500 to-pink-500 h-full transition-all duration-300"
-                    style={{
-                      width: `${((currentStep + 1) / JOB_STEPS.length) * 100}%`,
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Info */}
+              {/* Status Message */}
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
                 <p className="text-lg text-blue-900 text-center">
                   ⏱️ A música está sendo processada. Aguarde alguns minutos...
                 </p>
               </div>
+
+              {/* Refresh Button */}
+              <Button
+                size="lg"
+                className="w-full bg-purple-600 hover:bg-purple-700"
+                onClick={fetchStatus}
+              >
+                Verificar Agora
+              </Button>
+              <p className="text-center text-sm text-slate-500">
+                Atualiza automaticamente a cada 10 segundos
+              </p>
             </div>
           </CardContent>
         </Card>

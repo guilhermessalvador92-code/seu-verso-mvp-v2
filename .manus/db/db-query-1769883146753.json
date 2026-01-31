@@ -1,0 +1,35 @@
+{
+  "query": "SELECT id, title, audioUrl FROM songs ORDER BY createdAt DESC LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2WoMmgAVQngHs1c.root --database JUytjrxpDuMzcewywYRDnZ --execute SELECT id, title, audioUrl FROM songs ORDER BY createdAt DESC LIMIT 5;",
+  "rows": [
+    {
+      "id": "XchgCZS1tQk35Y6v4LWSl",
+      "title": "Test",
+      "audioUrl": "https://example.com/music1.mp3"
+    },
+    {
+      "id": "-VYbkqBWEpyyDIne89M19",
+      "title": "Test",
+      "audioUrl": "https://s3.amazonaws.com/bucket/music.mp3"
+    },
+    {
+      "id": "VXWp_OKmLTosbhHLtjw75",
+      "title": "Test",
+      "audioUrl": "https://cdn.suno.com/audio/abc123.mp3"
+    },
+    {
+      "id": "Cp7OY8C-qOhAaDK4hYOkJ",
+      "title": "Test",
+      "audioUrl": "https://storage.googleapis.com/bucket/music.mp3"
+    },
+    {
+      "id": "v4x-OiTFIklwNRFeQz_P9",
+      "title": "Música de Teste",
+      "audioUrl": "https://example.com/music.mp3"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\ttitle\taudioUrl\nXchgCZS1tQk35Y6v4LWSl\tTest\thttps://example.com/music1.mp3\n-VYbkqBWEpyyDIne89M19\tTest\thttps://s3.amazonaws.com/bucket/music.mp3\nVXWp_OKmLTosbhHLtjw75\tTest\thttps://cdn.suno.com/audio/abc123.mp3\nCp7OY8C-qOhAaDK4hYOkJ\tTest\thttps://storage.googleapis.com/bucket/music.mp3\nv4x-OiTFIklwNRFeQz_P9\tMúsica de Teste\thttps://example.com/music.mp3\n",
+  "stderr": "",
+  "execution_time_ms": 491
+}

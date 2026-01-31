@@ -1,0 +1,28 @@
+{
+  "query": "SELECT id, title, audioUrl, shareSlug FROM songs WHERE audioUrl IS NOT NULL AND audioUrl != '' LIMIT 3;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2WoMmgAVQngHs1c.root --database JUytjrxpDuMzcewywYRDnZ --execute SELECT id, title, audioUrl, shareSlug FROM songs WHERE audioUrl IS NOT NULL AND audioUrl != '' LIMIT 3;",
+  "rows": [
+    {
+      "id": "-VYbkqBWEpyyDIne89M19",
+      "title": "Test",
+      "audioUrl": "https://s3.amazonaws.com/bucket/music.mp3",
+      "shareSlug": "l6TJSXPH"
+    },
+    {
+      "id": "B_tc_5pMtJcoLJmrW7NuB",
+      "title": "Test",
+      "audioUrl": "https://example.com/music1.mp3",
+      "shareSlug": "ajH9W6cj"
+    },
+    {
+      "id": "Cp7OY8C-qOhAaDK4hYOkJ",
+      "title": "Test",
+      "audioUrl": "https://storage.googleapis.com/bucket/music.mp3",
+      "shareSlug": "0ifECjMz"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\ttitle\taudioUrl\tshareSlug\n-VYbkqBWEpyyDIne89M19\tTest\thttps://s3.amazonaws.com/bucket/music.mp3\tl6TJSXPH\nB_tc_5pMtJcoLJmrW7NuB\tTest\thttps://example.com/music1.mp3\tajH9W6cj\nCp7OY8C-qOhAaDK4hYOkJ\tTest\thttps://storage.googleapis.com/bucket/music.mp3\t0ifECjMz\n",
+  "stderr": "",
+  "execution_time_ms": 346
+}

@@ -1,0 +1,14 @@
+{
+  "query": "SELECT id, status FROM jobs WHERE id = '4MX7VQOJFf2ld6zFtmbV6';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2WoMmgAVQngHs1c.root --database JUytjrxpDuMzcewywYRDnZ --execute SELECT id, status FROM jobs WHERE id = '4MX7VQOJFf2ld6zFtmbV6';",
+  "rows": [
+    {
+      "id": "4MX7VQOJFf2ld6zFtmbV6",
+      "status": "PROCESSING"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tstatus\n4MX7VQOJFf2ld6zFtmbV6\tPROCESSING\n",
+  "stderr": "",
+  "execution_time_ms": 347
+}

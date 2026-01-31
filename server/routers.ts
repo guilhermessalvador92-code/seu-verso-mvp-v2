@@ -112,7 +112,7 @@ export const appRouter = router({
             addJobToPolling(jobId, sunoTaskId);
           } else {
             console.log("[Jobs] Suno generation failed");
-            await updateJobStatus(jobId, "FAILED");
+            await updateJobStatus(jobId, "FAILED", "Suno API failed to create music generation task");
           }
 
           return {
@@ -121,7 +121,7 @@ export const appRouter = router({
           };
         } catch (error) {
           console.error("[Jobs] Create failed:", error);
-          await updateJobStatus(jobId, "FAILED");
+          await updateJobStatus(jobId, "FAILED", error instanceof Error ? error.message : "Unknown error during job creation");
           throw error;
         }
       }),
@@ -216,7 +216,8 @@ export const appRouter = router({
                 return { success: true, status: "DONE", message: "Música encontrada e atualizada!" };
               }
             } else if (taskDetails?.data?.status === "failed" || taskDetails?.data?.status === "error") {
-              await updateJobStatus(input.jobId, "FAILED");
+              const errorMsg = taskDetails?.data?.error || "Music generation failed in Suno";
+              await updateJobStatus(input.jobId, "FAILED", errorMsg);
               return { success: false, status: "FAILED", message: "Música falhou na geração" };
             } else {
               return { success: true, status: job.status, message: `Status atual: ${taskDetails?.data?.status || "checking"}` };

@@ -124,17 +124,24 @@ export async function getJobBySunoTaskId(sunoTaskId: string): Promise<Job | unde
   return result.length > 0 ? result[0] : undefined;
 }
 
-export async function updateJobStatus(jobId: string, status: Job["status"]): Promise<void> {
+export async function updateJobStatus(jobId: string, status: Job["status"], failureReason?: string): Promise<void> {
   const db = await getDb();
   if (!db) {
     const idx = _mockJobs.findIndex((j) => j.id === jobId);
     if (idx >= 0) {
       _mockJobs[idx].status = status;
       _mockJobs[idx].updatedAt = new Date();
+      if (failureReason !== undefined) {
+        (_mockJobs[idx] as any).failureReason = failureReason;
+      }
     }
     return;
   }
-  await db.update(jobs).set({ status, updatedAt: new Date() }).where(eq(jobs.id, jobId));
+  const updateData: Record<string, unknown> = { status, updatedAt: new Date() };
+  if (failureReason !== undefined) {
+    updateData.failureReason = failureReason;
+  }
+  await db.update(jobs).set(updateData).where(eq(jobs.id, jobId));
 }
 
 export async function updateJobSunoTaskId(jobId: string, sunoTaskId: string): Promise<void> {

@@ -274,7 +274,7 @@ export async function handleSunoCallback(req: Request, res: Response) {
       
       // Atualizar job para FAILED
       try {
-        await updateJobStatus(task_id, "FAILED");
+        await updateJobStatus(task_id, "FAILED", `Suno API error (code ${code}): ${msg}`);
         console.log("[Webhook] Job marked as FAILED:", task_id);
       } catch (error) {
         console.error("[Webhook] Failed to update job status:", error);
@@ -434,7 +434,7 @@ export async function handleSunoCallback(req: Request, res: Response) {
 
       if (createdSongs.length === 0) {
         console.error("[Webhook] No songs could be created");
-        await updateJobStatus(jobId, "FAILED");
+        await updateJobStatus(jobId, "FAILED", "No songs could be created from the music data");
         return res.status(500).json({
           success: false,
           error: "Failed to create any songs",
@@ -476,7 +476,8 @@ export async function handleSunoCallback(req: Request, res: Response) {
         
         // Tentar atualizar job para FAILED
         try {
-          await updateJobStatus(task_id, "FAILED");
+          const errorMsg = error instanceof Error ? error.message : "Unknown error processing music";
+          await updateJobStatus(task_id, "FAILED", `Webhook processing error: ${errorMsg}`);
         } catch (updateError) {
           console.error("[Webhook] Failed to update job status:", updateError);
         }
@@ -501,7 +502,7 @@ export async function handleSunoCallback(req: Request, res: Response) {
       });
 
       try {
-        await updateJobStatus(task_id, "FAILED");
+        await updateJobStatus(task_id, "FAILED", `Error callback from Suno: ${msg}`);
       } catch (error) {
         console.error("[Webhook] Failed to update job status:", error);
       }

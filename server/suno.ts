@@ -197,8 +197,13 @@ export async function generateMusicWithSuno(
     const taskId = data.data?.taskId;
 
     if (taskId) {
-      const { updateJobSunoTaskId } = await import("./db");
-      await updateJobSunoTaskId(jobId, taskId);
+      try {
+        const { updateJobSunoTaskId } = await import("./db");
+        await updateJobSunoTaskId(jobId, taskId);
+      } catch (dbError) {
+        console.error("[Suno] Failed to update job with task ID", { jobId, error: dbError });
+        // Continue anyway - the task was created
+      }
       console.log("[Suno] ✅ Music generation task created", {
         jobId,
         taskId,

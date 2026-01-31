@@ -161,46 +161,48 @@ async function handleTaskCompletion(job: PollingJob, taskDetails: any): Promise<
   const title = taskDetails.data?.title || "Música Personalizada";
   const lyrics = taskDetails.data?.lyrics || "";
 
-  if (audioUrl) {
-    try {
-      const shareSlug = nanoid(8);
-
-      // Criar registro da música
-      await createSong({
-        id: nanoid(),
-        jobId: job.jobId,
-        title,
-        lyrics,
-        audioUrl,
-        shareSlug,
-        createdAt: new Date(),
-      });
-
-      // Atualizar status do job
-      await updateJobStatus(job.jobId, "DONE");
-
-      // Enviar email
-      const lead = await getLeadByJobId(job.jobId);
-      if (lead && lead.email) {
-        const appUrl = process.env.APP_URL || "http://localhost:3000";
-        const shareUrl = `${appUrl}/m/${shareSlug}`;
-        
-        await sendMusicReadyEmail(
-          lead.email,
-          title,
-          shareUrl,
-          shareUrl,
-          lead.names
-        );
-        
-        console.log("[Polling] 📧 Music ready email sent", { jobId: job.jobId });
-      }
-    } catch (error) {
-      console.error("[Polling] Error handling completion", { jobId: job.jobId, error });
-      throw error; // Re-throw to be caught by outer try-catch
-    }
-  } else {
+  if (!audioUrl) {
     console.warn("[Polling] ⚠️ Task complete but no audio URL", { jobId: job.jobId });
+    await updateJobStatus(job.jobId, "FAILED");
+    return; // Caller will remove from polling
+  }
+
+  const shareSlug = nanoid(8);
+
+  // Criar registro da música
+  await createSong({
+    id: nanoid(),
+    jobId: job.jobId,
+    title,
+    lyrics,
+    audioUrl,
+    shareSlug,
+    createdAt: new Date(),
+  });
+
+  // Atualizar status do job
+  await updateJobStatus(job.jobId, "DONE");
+
+  // Enviar email
+  const lead = await getLeadByJobId(job.jobId);
+  if (lead && lead.email) {
+    const appUrl = process.env.APP_URL || "http://localhost:3000";
+    const shareUrl = `${appUrl}/m/${shareSlug}`;
+    
+    const emailSent = await sendMusicReadyEmail(
+      lead.email,
+      title,
+      shareUrl,
+      shareUrl,
+      lead.names
+    );
+    
+    if (emailSent) {
+      await markEmailSent(job.jobId);
+      console.log("[Polling] 📧 Music ready email sent", { jobId: job.jobId });
+    } else {
+      console.warn("[Polling] ⚠️ Failed to send music ready email", { jobId: job.jobId });
+    }
   }
 }
 

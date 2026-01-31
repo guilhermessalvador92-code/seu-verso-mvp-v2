@@ -4,9 +4,9 @@ const envSchema = z.object({
   // Database
   DATABASE_URL: z.string().optional(),
   
-  // APIs Externas
-  RESEND_API_KEY: z.string().min(1, "RESEND_API_KEY é obrigatório").optional(),
-  SUNO_API_KEY: z.string().min(1, "SUNO_API_KEY é obrigatório").optional(),
+  // APIs Externas (optional because they may not be needed in all environments)
+  RESEND_API_KEY: z.string().optional(),
+  SUNO_API_KEY: z.string().optional(),
   GEMINI_API_KEY: z.string().optional(),
   
   // Email

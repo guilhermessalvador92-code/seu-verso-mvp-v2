@@ -31,7 +31,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   const db = await getDb();
   if (!db) {
     console.warn("[Database] Cannot upsert user: database not available");
-    throw new Error("Database not available");
+    return;
   }
 
   try {

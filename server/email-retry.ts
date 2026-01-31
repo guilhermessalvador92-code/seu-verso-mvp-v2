@@ -78,6 +78,7 @@ export async function queueEmail(
 
 /**
  * Processar fila de emails pendentes
+ * Com tratamento de tabela não existente
  */
 export async function processEmailQueue(config: EmailRetryConfig = DEFAULT_CONFIG): Promise<void> {
   const db = await getDb();
@@ -108,7 +109,12 @@ export async function processEmailQueue(config: EmailRetryConfig = DEFAULT_CONFI
     for (const email of pendingEmails) {
       await processEmailRetry(email, config);
     }
-  } catch (error) {
+  } catch (error: any) {
+    // Ignorar erro se tabela não existe (ainda não foi criada)
+    if (error.message?.includes("doesn't exist") || error.code === "ER_NO_SUCH_TABLE") {
+      console.warn("[EmailRetry] Table doesn't exist yet, will retry later");
+      return;
+    }
     console.error("[EmailRetry] Error processing queue:", error);
   }
 }
@@ -293,12 +299,17 @@ export async function getEmailQueueStats(): Promise<{
 /**
  * Iniciar worker de processamento de fila
  * Processa emails a cada intervalo especificado
+ * Com delay inicial para permitir inicialização do banco de dados
  */
 export function startEmailQueueWorker(intervalMs: number = 30000): ReturnType<typeof setInterval> {
   console.log("[EmailRetry] Starting email queue worker with interval:", intervalMs);
 
-  // Processar imediatamente na inicialização
-  processEmailQueue().catch(console.error);
+  // Aguardar 5 segundos antes de processar para permitir inicialização do banco de dados
+  const initialDelay = 5000;
+  setTimeout(() => {
+    console.log("[EmailRetry] Processing email queue after initial delay");
+    processEmailQueue().catch(console.error);
+  }, initialDelay);
 
   // Processar periodicamente
   return setInterval(() => {

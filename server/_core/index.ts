@@ -125,32 +125,48 @@ async function startServer() {
     const DATABASE_URL = process.env.DATABASE_URL;
     
     if (DATABASE_URL) {
+      console.log("[Database] DATABASE_URL is configured");
       const connection = await mysql.createConnection(DATABASE_URL);
+      console.log("[Database] Connection established");
+      
       const currentDir = import.meta.dirname || path.dirname(fileURLToPath(import.meta.url)) || process.cwd();
       const sqlPath = path.resolve(currentDir, "../../scripts/init-db.sql");
+      console.log("[Database] SQL file path:", sqlPath);
       
       if (fs.existsSync(sqlPath)) {
+        console.log("[Database] SQL file found, reading...");
         const sql = fs.readFileSync(sqlPath, "utf8");
         const statements = sql.split(";").filter((s: string) => s.trim());
+        console.log(`[Database] Found ${statements.length} SQL statements to execute`);
         
-        for (const statement of statements) {
+        let successCount = 0;
+        let skipCount = 0;
+        
+        for (let i = 0; i < statements.length; i++) {
+          const statement = statements[i];
           if (statement.trim()) {
             try {
+              console.log(`[Database] Executing statement ${i + 1}/${statements.length}...`);
               await connection.execute(statement);
+              successCount++;
             } catch (err: any) {
               // Ignore errors if tables already exist
-              if (!err.message.includes("already exists")) {
-                console.warn("[Database] SQL warning:", err.message.substring(0, 100));
+              if (err.message.includes("already exists") || err.code === "ER_TABLE_EXISTS_ERROR") {
+                console.log(`[Database] Table already exists (statement ${i + 1}), skipping...`);
+                skipCount++;
+              } else {
+                console.warn(`[Database] SQL warning (statement ${i + 1}):`, err.message.substring(0, 100));
               }
             }
           }
         }
-        console.log("[Database] Schema initialized successfully");
+        console.log(`[Database] Schema initialization complete! Executed: ${successCount}, Skipped: ${skipCount}`);
       } else {
         console.warn("[Database] SQL file not found at", sqlPath);
       }
       
       await connection.end();
+      console.log("[Database] Connection closed");
     } else {
       console.warn("[Database] DATABASE_URL not configured, skipping schema initialization");
     }
@@ -160,7 +176,9 @@ async function startServer() {
   }
   
   // Iniciar worker de processamento de email
+  console.log("[Server] Starting email queue worker...");
   startEmailQueueWorker(30000); // Processar emails a cada 30 segundos
+  console.log("[Server] Email queue worker started");
   
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);

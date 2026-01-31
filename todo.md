@@ -96,3 +96,11 @@
 - [x] Extrair audio_url, image_url, prompt, title, duration
 - [x] Testar com payload real da Suno (3 testes vitest passando)
 - [x] Validar fluxo completo (teste com curl bem-sucedido)
+
+
+## Database Migration Fix - Produção (Nova Sessão)
+- [x] Corrigir inicialização do banco de dados em produção
+- [x] Adicionar retry logic e delay no email queue worker
+- [x] Adicionar logs detalhados para debug
+- [x] Testar em desenvolvimento
+- [x] Fazer checkpoint final

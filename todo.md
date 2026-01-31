@@ -106,3 +106,13 @@
 - [x] Integrar inicialização no servidor ANTES de qualquer worker
 - [x] Testar em desenvolvimento
 - [x] Fazer checkpoint final
+
+## MVP Simplification - Final (CONCLUIDO)
+- [x] Diagnosticar erro de schema (coluna jobId faltando)
+- [x] Criar script de migracao (migrate-fix-songs.sql)
+- [x] Atualizar db-init.ts para executar migracao
+- [x] Simplificar routers.ts (remover Gemini, polling)
+- [x] Reescrever webhook.ts (remover complexidades)
+- [x] Corrigir imports e tipos TypeScript
+- [x] Testar em desenvolvimento
+- [x] Fazer checkpoint final

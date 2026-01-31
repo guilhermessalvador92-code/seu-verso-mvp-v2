@@ -1,6 +1,6 @@
 /**
  * Database Initialization Module
- * Executes on server startup to ensure all tables exist
+ * Executes on server startup to ensure all tables exist and are up-to-date
  * This runs BEFORE any other server logic
  */
 
@@ -23,7 +23,7 @@ export async function initializeDatabaseSchema(attempt: number = 1): Promise<boo
 
   if (!DATABASE_URL) {
     console.warn("[DB Init] DATABASE_URL not set, skipping schema initialization");
-    return true; // Não falhar se não houver URL
+    return true;
   }
 
   try {
@@ -32,6 +32,7 @@ export async function initializeDatabaseSchema(attempt: number = 1): Promise<boo
     const connection = await mysql.createConnection(DATABASE_URL);
     console.log("[DB Init] Connected to database");
 
+    // Step 1: Create tables
     const sqlPath = path.resolve(__dirname, "../scripts/init-db.sql");
     
     if (!fs.existsSync(sqlPath)) {
@@ -56,7 +57,6 @@ export async function initializeDatabaseSchema(attempt: number = 1): Promise<boo
           await connection.execute(statement);
           successCount++;
         } catch (error: any) {
-          // Ignorar erros de tabelas já existentes
           if (
             error.message?.includes("already exists") ||
             error.code === "ER_TABLE_EXISTS_ERROR"
@@ -70,11 +70,44 @@ export async function initializeDatabaseSchema(attempt: number = 1): Promise<boo
       }
     }
 
+    console.log(
+      `[DB Init] Schema initialization: Success: ${successCount}, Skipped: ${skipCount}, Errors: ${errorCount}`
+    );
+
+    // Step 2: Run migrations
+    console.log("[DB Init] Running migrations...");
+    const migrationPath = path.resolve(__dirname, "../scripts/migrate-fix-songs.sql");
+    
+    if (fs.existsSync(migrationPath)) {
+      const migrationSql = fs.readFileSync(migrationPath, "utf8");
+      const migrationStatements = migrationSql.split(";").filter((s: string) => s.trim());
+
+      console.log(`[DB Init] Found ${migrationStatements.length} migration statements`);
+
+      let migrationSuccess = 0;
+      let migrationError = 0;
+
+      for (let i = 0; i < migrationStatements.length; i++) {
+        const statement = migrationStatements[i];
+        if (statement.trim()) {
+          try {
+            await connection.execute(statement);
+            migrationSuccess++;
+          } catch (error: any) {
+            console.warn(`[DB Init] Migration warning:`, error.message);
+            migrationError++;
+          }
+        }
+      }
+
+      console.log(
+        `[DB Init] Migrations: Success: ${migrationSuccess}, Errors: ${migrationError}`
+      );
+    }
+
     await connection.end();
 
-    console.log(
-      `[DB Init] ✅ Schema initialization complete! Success: ${successCount}, Skipped: ${skipCount}, Errors: ${errorCount}`
-    );
+    console.log(`[DB Init] ✅ Database initialization complete!`);
 
     return true;
   } catch (error: any) {
@@ -86,8 +119,6 @@ export async function initializeDatabaseSchema(attempt: number = 1): Promise<boo
       return initializeDatabaseSchema(attempt + 1);
     } else {
       console.error("[DB Init] ❌ Max retries reached");
-      // Não falhar completamente - o servidor pode iniciar mesmo sem tabelas
-      // Mas isso vai causar erros quando tentar usar as tabelas
       return false;
     }
   }

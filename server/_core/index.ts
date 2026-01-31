@@ -15,20 +15,21 @@ import path from "path";
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
     const server = net.createServer();
-    server.listen(port, () => {
+    server.listen(port, '0.0.0.0', () => {
       server.close(() => resolve(true));
     });
     server.on("error", () => resolve(false));
   });
 }
 
-async function findAvailablePort(startPort: number = 3000): Promise<number> {
+async function findAvailablePort(startPort: number): Promise<number> {
   for (let port = startPort; port < startPort + 20; port++) {
     if (await isPortAvailable(port)) {
       return port;
     }
   }
-  throw new Error(`No available port found starting from ${startPort}`);
+  // If no port found, return the preferred port anyway (will fail with clear error on bind)
+  return startPort;
 }
 
 async function startServer() {
@@ -129,8 +130,8 @@ async function startServer() {
     console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
   }
 
-  server.listen(port, () => {
-    console.log(`Server running on http://localhost:${port}/`);
+  server.listen(port, '0.0.0.0', () => {
+    console.log(`Server running on http://0.0.0.0:${port}/`);
   });
 }
 

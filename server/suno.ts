@@ -299,7 +299,7 @@ function buildFallbackPrompt(
   occasion: string | undefined,
   mood: string | undefined
 ): string {
-  let prompt = `Create a pure instrumental composition (NO vocals, NO singing, NO lyrics). Emotionally resonant background music inspired by:\n\n`;
+  let prompt = `Crie uma música em português brasileiro com vocais e letras. Música personalizada e memorável para:\n\n`;
   prompt += `For: ${names}\n`;
 
   if (occasion) {
@@ -309,23 +309,26 @@ function buildFallbackPrompt(
   let moodDescription = "";
   if (mood) {
     const moodMap: Record<string, string> = {
-      "Emocionante": "emotional, touching, moving",
-      "Alegre": "joyful, uplifting, celebratory",
-      "Engraçado": "playful, lighthearted, fun",
-      "Épico": "epic, grand, inspirational",
+      "Emocionante": "emocionante, tocante, comovente",
+      "Alegre": "alegre, animada, celebrativa",
+      "Engraçado": "divertida, leve, bem-humorada",
+      "Épico": "épica, grandiosa, inspiradora",
+      "Motivacional": "motivadora, inspiradora, energética",
+      "Melancólica": "melancólica, reflexiva, introspectiva",
     };
     moodDescription = moodMap[mood] || mood.toLowerCase();
-    prompt += `Mood: ${moodDescription}\n`;
+    prompt += `Clima/Emoção: ${moodDescription}\n`;
   }
 
-  prompt += `\nContext/Story:\n${story}\n\n`;
-  prompt += `IMPORTANT:\n`;
-  prompt += `- PURE INSTRUMENTAL - absolutely NO vocals, NO singing, NO words\n`;
-  prompt += `- Emotionally coherent and well-structured\n`;
-  prompt += `- Consistent rhythm and flow\n`;
-  prompt += `- Clear emotional message through instrumentation\n`;
-  prompt += `- Duration: 2-3 minutes\n`;
-  prompt += `- Focus on atmospheric, immersive soundscapes`;
+  prompt += `\nContexto/História:\n${story}\n\n`;
+  prompt += `IMPORTANTE:\n`;
+  prompt += `- DEVE SER UMA MÚSICA COM VOCAIS E LETRAS em português brasileiro\n`;
+  prompt += `- Letras coerentes, bem estruturadas e profissionais\n`;
+  prompt += `- Incluir verso, pré-refrão e refrão\n`;
+  prompt += `- Rimas naturais e bem pensadas\n`;
+  prompt += `- Métrica e ritmo consistentes\n`;
+  prompt += `- Mensagem clara e emocionante\n`;
+  prompt += `- Duração: 2-3 minutos`;
 
   if (prompt.length > 5000) {
     prompt = prompt.substring(0, 4997) + "...";

@@ -11,6 +11,7 @@ import { handleSunoCallback, webhookHealthCheck, webhookTest } from "../webhook"
 import { getJobById, getSongsByJobId } from "../db";
 import { startEmailQueueWorker } from "../email-retry";
 import path from "path";
+import { fileURLToPath } from "url";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -102,7 +103,8 @@ async function startServer() {
 
   // Página de entrega minimalista sem depender do bundle React
   app.get("/status/:jobId", (req, res, next) => {
-    const statusPath = path.resolve(import.meta.dirname, "../public/status.html");
+    const currentDir = import.meta.dirname || path.dirname(fileURLToPath(import.meta.url)) || process.cwd();
+    const statusPath = path.resolve(currentDir, "../public/status.html");
     res.sendFile(statusPath, err => {
       if (err) next();
     });

@@ -63,6 +63,7 @@ export const leads = mysqlTable("leads", {
   occasion: text("occasion"),
   story: text("story").notNull(),
   mood: varchar("mood", { length: 64 }),
+  language: varchar("language", { length: 10 }).default("pt-BR").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

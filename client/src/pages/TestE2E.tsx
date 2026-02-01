@@ -28,10 +28,11 @@ export default function TestE2E() {
         name: "Teste E2E",
         whatsapp: "+5553846158886",
         story: "Uma história de teste para validar o sistema completo",
-        style: "Pop, upbeat, catchy melodies",
+        style: "Pop",
+        title: "Música de Teste E2E",
         occasion: "birthday",
-        mood: "Alegre/Feliz",
-        language: "pt-BR",
+        mood: "Romântico",
+        agreedToTerms: true,
       });
 
       addLog(`✅ Job criado: ${result.jobId}`);

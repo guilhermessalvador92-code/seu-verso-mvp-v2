@@ -5,7 +5,7 @@
  */
 
 import { Request, Response } from "express";
-import { getJobById, updateJobStatus, createSong, getLeadByJobId } from "./db";
+import { getJobById, getJobBySunoTaskId, updateJobStatus, createSong, getLeadByJobId } from "./db";
 import { nanoid } from "nanoid";
 import { sendToFluxuz, createFluxuzPayload } from "./fluxuz";
 
@@ -66,11 +66,11 @@ export async function handleSunoCallback(req: Request, res: Response) {
     // Handle completion
     if (callbackType === "complete" && Array.isArray(musicData) && musicData.length > 0) {
       try {
-        const jobId = task_id;
-        const job = await getJobById(jobId);
+        // Buscar job pelo sunoTaskId (task_id da Suno)
+        const job = await getJobBySunoTaskId(task_id);
 
         if (!job) {
-          console.error("[Webhook] Job not found:", jobId);
+          console.error("[Webhook] Job not found for sunoTaskId:", task_id);
           return res.status(200).json({
             success: false,
             error: "Job not found",
@@ -78,6 +78,7 @@ export async function handleSunoCallback(req: Request, res: Response) {
         }
 
         // Get lead info (nome + whatsapp)
+        const jobId = job.id;
         const lead = await getLeadByJobId(jobId);
 
         // Process first music track

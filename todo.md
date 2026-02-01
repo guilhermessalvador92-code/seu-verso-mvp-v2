@@ -96,3 +96,16 @@ leads:
 - [x] Enviar prompt direto para Suno (sem LLM)
 - [x] Testar criação de música end-to-end
 - [x] Validar envio WhatsApp (aguardando webhook)
+
+## 🚨 BUG CRÍTICO - Webhook Não Está Sendo Chamado
+- [x] Investigar logs completos da Suno API
+- [x] Verificar se taskId foi realmente criado
+- [x] Validar URL do webhook (APP_URL) - CORRIGIDO: estava usando localhost
+- [x] Testar webhook manualmente - Webhook sendo chamado!
+- [x] Verificar resposta completa da Suno API
+- [x] Corrigir problemas identificados - Webhook buscava job pelo ID errado
+
+## ⚠️ Pendências Identificadas (Pós-Debug)
+- [ ] Criar rota `/m/:slug` para compartilhamento de músicas
+- [ ] Verificar token/endpoint do Fluxuz (retornando 404)
+- [ ] Testar envio WhatsApp após corrigir Fluxuz

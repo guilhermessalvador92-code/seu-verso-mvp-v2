@@ -126,7 +126,11 @@ export async function generateMusicWithSuno(
       title: title,
       hasLyrics: true,
       costEstimate: "Standard (with vocals and lyrics)",
+      callbackUrl: callbackUrl,
+      endpoint: `${SUNO_API_BASE}/api/v1/generate`,
     });
+    
+    console.log("[Suno] Full payload:", JSON.stringify(payload, null, 2));
 
     const response = await fetch(`${SUNO_API_BASE}/api/v1/generate`, {
       method: "POST",

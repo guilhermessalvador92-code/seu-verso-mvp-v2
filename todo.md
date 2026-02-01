@@ -82,3 +82,10 @@ leads:
 4. Validar envio WhatsApp
 5. Salvar checkpoint final
 6. Criar roadmap retroativo completo
+
+## 🐛 Bug Crítico - Erro de Sintaxe SQL na Migração
+- [x] Identificar arquivo de migração com erro de sintaxe
+- [x] Corrigir sintaxe SQL: "IF EXISTS `names` `name` text"
+- [x] Limpar migrações antigas
+- [x] Regenerar schema limpo
+- [x] Testar inicialização do banco

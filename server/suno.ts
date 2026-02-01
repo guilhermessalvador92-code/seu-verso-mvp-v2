@@ -46,7 +46,10 @@ export interface SunoTaskDetails {
   };
 }
 
-const SUNO_API_BASE = "https://api.sunoapi.org";
+// ATUALIZADO: Novo domínio após issue emergencial (01/02/2026)
+// Antes: https://api.sunoapi.org ou https://api.api.box
+// Agora: https://apibox.erweima.ai
+const SUNO_API_BASE = "https://apibox.erweima.ai";
 
 // Usar endpoint de geração normal (não cover) conforme documentação oficial
 const USE_SUNO_COVER = false; // Desativado - usar /api/v1/generate

@@ -67,24 +67,20 @@ export const appRouter = router({
           // 3. Update status to PROCESSING
           await updateJobStatus(jobId, "PROCESSING");
           
-          // 4. Generate music with Suno (simple prompt)
+          // 4. Generate music with Suno
+          // Gemini vai processar a história ANTES de enviar para Suno
           console.log("[Jobs] Sending to Suno API...");
           const appUrl = process.env.APP_URL || "http://localhost:3000";
           const callbackUrl = `${appUrl}/api/webhook/suno`;
 
-          // Build simple prompt from user input
-          const prompt = `Create a ${input.style} song about: ${input.story}. 
-Title: ${input.title}
-${input.mood ? `Mood: ${input.mood}` : ''}
-${input.occasion ? `Occasion: ${input.occasion}` : ''}`;
-
           const sunoTaskId = await generateMusicWithSuno(
             jobId,
-            prompt,
+            input.story,  // História do usuário (Gemini vai processar)
             input.style,
-            input.title,
+            input.name,   // Nome para homenagear
             input.occasion,
             input.mood,
+            input.language,  // Idioma da música
             callbackUrl
           );
 

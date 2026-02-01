@@ -63,6 +63,7 @@ export async function generateMusicWithSuno(
   names: string,
   occasion: string | undefined,
   mood: string | undefined,
+  language: string | undefined,
   callbackUrl: string
 ): Promise<string | null> {
   // In test or CI environments we avoid making external API calls to prevent
@@ -93,8 +94,8 @@ export async function generateMusicWithSuno(
   // Usar endpoint de geração normal conforme documentação oficial
 
   try {
-    // Gerar prompt otimizado com LLM (Gemini)
-    const prompt = await buildPromptWithLLM(story, names, occasion, mood);
+    // Gerar prompt otimizado com LLM (Gemini) ANTES de enviar para Suno
+    const prompt = await buildPromptWithLLM(story, names, occasion, mood, language);
 
     // Mapear estilo musical para o formato esperado pela Suno
     const sunoStyle = mapMusicStyle(style);
@@ -241,14 +242,15 @@ async function buildPromptWithLLM(
   story: string,
   names: string,
   occasion: string | undefined,
-  mood: string | undefined
+  mood: string | undefined,
+  language: string | undefined
 ): Promise<string> {
   try {
     const systemPrompt = `Você é um especialista em criar prompts para geração de músicas personalizadas. 
 Seu objetivo é transformar uma história/contexto em um prompt detalhado e inspirador para a Suno API gerar uma música em português brasileiro.
 
 REGRAS IMPORTANTES:
-- A música DEVE ser 100% em português brasileiro
+- A música DEVE ser 100% em ${language || "português brasileiro"}
 - Evitar mistura de idiomas
 - Criar letras coerentes, bem estruturadas e profissionais
 - Incluir verso, pré-refrão e refrão
@@ -264,6 +266,7 @@ Retorne APENAS o prompt otimizado, sem explicações adicionais.`;
 Nome(s) do(s) homenageado(s): ${names}
 ${occasion ? `Ocasião: ${occasion}` : ""}
 ${mood ? `Clima/Emoção: ${mood}` : ""}
+${language ? `Idioma: ${language}` : ""}
 
 Contexto/História:
 ${story}
@@ -280,7 +283,7 @@ Gere um prompt detalhado e inspirador para a Suno API criar uma música memoráv
     const content = response.choices[0]?.message?.content;
     if (!content) {
       console.warn("[LLM] Empty response, using fallback prompt");
-      return buildFallbackPrompt(story, names, occasion, mood);
+      return buildFallbackPrompt(story, names, occasion, mood, language);
     }
 
     // Limitar a 5000 caracteres (limite do modelo V4_5PLUS)
@@ -292,7 +295,7 @@ Gere um prompt detalhado e inspirador para a Suno API criar uma música memoráv
     return prompt;
   } catch (error) {
     console.error("[LLM] Error building prompt:", error);
-    return buildFallbackPrompt(story, names, occasion, mood);
+    return buildFallbackPrompt(story, names, occasion, mood, language);
   }
 }
 
@@ -300,9 +303,11 @@ function buildFallbackPrompt(
   story: string,
   names: string,
   occasion: string | undefined,
-  mood: string | undefined
+  mood: string | undefined,
+  language: string | undefined
 ): string {
-  let prompt = `Crie uma música em português brasileiro com vocais e letras. Música personalizada e memorável para:\n\n`;
+  const lang = language || "Português Brasileiro";
+  let prompt = `Crie uma música em ${lang} com vocais e letras. Música personalizada e memorável para:\n\n`;
   prompt += `For: ${names}\n`;
 
   if (occasion) {

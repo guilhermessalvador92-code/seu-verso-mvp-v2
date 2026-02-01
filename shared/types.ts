@@ -46,6 +46,26 @@ export const MOODS = [
 
 export type Mood = (typeof MOODS)[number];
 
+export const LANGUAGES = [
+  "Português Brasileiro",
+  "Espanhol",
+  "Inglês Americano",
+  "Inglês Britânico",
+] as const;
+
+export type Language = (typeof LANGUAGES)[number];
+
+export const OCCASIONS = [
+  "Aniversário",
+  "Casamento",
+  "Serenata Romântica",
+  "Mensagem Positiva",
+  "Jingle Político",
+  "Meme (Brincadeira)",
+] as const;
+
+export type Occasion = (typeof OCCASIONS)[number];
+
 export const JOB_STATUSES = ["QUEUED", "PROCESSING", "DONE", "FAILED"] as const;
 
 export type JobStatus = (typeof JOB_STATUSES)[number];
@@ -61,8 +81,9 @@ export interface CreateJobPayload {
   story: string;
   style: MusicStyle;
   names: string;
-  occasion?: string;
+  occasion?: Occasion;
   mood?: Mood;
+  language?: Language;
   voiceGender?: "Masculina" | "Feminina";
   email: string;
   agreedToTerms: boolean;

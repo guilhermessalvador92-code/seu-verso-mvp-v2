@@ -18,7 +18,7 @@ import { trpc } from "@/lib/trpc";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { Loader2, Music, MessageCircle } from "lucide-react";
-import { MUSIC_STYLES, MOODS } from "@shared/types";
+import { MUSIC_STYLES, MOODS, LANGUAGES, OCCASIONS } from "@shared/types";
 
 const createJobSchema = z.object({
   name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
@@ -26,8 +26,9 @@ const createJobSchema = z.object({
   story: z.string().min(10, "História deve ter pelo menos 10 caracteres"),
   style: z.enum(MUSIC_STYLES as unknown as [string, ...string[]]),
   title: z.string().min(1, "Título da música é obrigatório"),
-  occasion: z.string().optional(),
+  occasion: z.enum(OCCASIONS as unknown as [string, ...string[]]).optional(),
   mood: z.enum(MOODS as unknown as [string, ...string[]]).optional(),
+  language: z.enum(LANGUAGES as unknown as [string, ...string[]]).optional(),
   voiceGender: z.enum(["Masculina", "Feminina"]).optional(),
   agreedToTerms: z.boolean().refine(v => v === true, "Você deve concordar com os termos"),
 });
@@ -61,6 +62,8 @@ export default function Create() {
 
   const style = watch("style");
   const mood = watch("mood");
+  const occasion = watch("occasion");
+  const language = watch("language");
   const voiceGender = watch("voiceGender");
   const agreedToTerms = watch("agreedToTerms");
 
@@ -175,12 +178,40 @@ export default function Create() {
                 <Label htmlFor="occasion" className="font-semibold">
                   Ocasião (Opcional)
                 </Label>
-                <Input
-                  id="occasion"
-                  placeholder="Ex: Aniversário de 50 anos, Casamento, Formatura"
-                  className="border-slate-300"
-                  {...register("occasion")}
-                />
+                <Select value={occasion || ""} onValueChange={(value) => setValue("occasion", value as any)}>
+                  <SelectTrigger className="border-slate-300">
+                    <SelectValue placeholder="Selecione uma ocasião" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {OCCASIONS.map((o) => (
+                      <SelectItem key={o} value={o}>
+                        {o === "Aniversário" ? "🎂" : o === "Casamento" ? "💍" : o === "Serenata Romântica" ? "🌹" : o === "Mensagem Positiva" ? "✨" : o === "Jingle Político" ? "🗳️" : "😂"} {o}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Idioma */}
+              <div className="space-y-2">
+                <Label htmlFor="language" className="font-semibold">
+                  Idioma da Música (Opcional)
+                </Label>
+                <Select value={language || ""} onValueChange={(value) => setValue("language", value as any)}>
+                  <SelectTrigger className="border-slate-300">
+                    <SelectValue placeholder="Selecione o idioma" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LANGUAGES.map((l) => (
+                      <SelectItem key={l} value={l}>
+                        {l === "Português Brasileiro" ? "🇧🇷" : l === "Espanhol" ? "🇪🇸" : l === "Inglês Americano" ? "🇺🇸" : "🇬🇧"} {l}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-slate-500">
+                  Padrão: Português Brasileiro
+                </p>
               </div>
 
               {/* Estilo Musical */}

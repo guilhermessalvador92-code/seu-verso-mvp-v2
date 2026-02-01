@@ -126,3 +126,12 @@
 - [x] Remover queueMusicReadyEmail do webhook
 - [x] Testar fluxo completo
 - [x] Fazer checkpoint final
+
+## Integração Fluxuz - WhatsApp Push (CONCLUIDO)
+- [x] Criar endpoint /api/fluxuz/push para receber dados
+- [x] Criar função para enviar para Fluxuz API
+- [x] Gerar JSON estruturado para PUSH
+- [x] Atualizar webhook para chamar Fluxuz
+- [x] Configurar variáveis de ambiente (FLUXUZ_API_KEY, FLUXUZ_API_URL)
+- [x] Testar integração end-to-end
+- [x] Documentar fluxo completo

@@ -7,6 +7,7 @@
 import { Request, Response } from "express";
 import { getJobById, updateJobStatus, createSong, getLeadByJobId } from "./db";
 import { nanoid } from "nanoid";
+import { sendToFluxuz, createFluxuzPayload } from "./fluxuz";
 
 export interface SunoMusicData {
   id: string;
@@ -113,15 +114,24 @@ export async function handleSunoCallback(req: Request, res: Response) {
         await updateJobStatus(jobId, "DONE");
         console.log("[Webhook] Job marked as DONE:", jobId);
 
-        // Log lead info for Fluxuz integration
+        // Send to Fluxuz for WhatsApp dispatch
         if (lead) {
-          console.log("[Webhook] Lead info saved:", {
+          console.log("[Webhook] Sending to Fluxuz...");
+          const fluxuzPayload = createFluxuzPayload(
             jobId,
-            name: lead.name,
-            whatsapp: lead.whatsapp,
-            musicTitle: title,
+            lead.name,
+            lead.whatsapp,
+            title,
+            audioUrl,
             shareSlug,
-          });
+            lyrics,
+            music.image_url
+          );
+          
+          const fluxuzSent = await sendToFluxuz(fluxuzPayload);
+          console.log("[Webhook] Fluxuz sent:", fluxuzSent);
+        } else {
+          console.warn("[Webhook] No lead found for Fluxuz integration");
         }
 
         return res.status(200).json({
@@ -132,7 +142,7 @@ export async function handleSunoCallback(req: Request, res: Response) {
             whatsapp: lead.whatsapp,
           } : null,
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error("[Webhook] Error processing music:", error);
         
         try {

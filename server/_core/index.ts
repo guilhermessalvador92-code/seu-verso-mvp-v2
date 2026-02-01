@@ -9,6 +9,7 @@ import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { handleSunoCallback, webhookHealthCheck, webhookTest } from "../webhook";
 import { getJobById, getSongsByJobId } from "../db";
+import { handleFluxuzConfirmation } from "../fluxuz";
 // Email system removed - using WhatsApp only
 import { initializeDatabaseSchema } from "../db-init";
 import path from "path";
@@ -87,6 +88,9 @@ async function startServer() {
   app.post("/api/webhook/suno", handleSunoCallback);
   app.get("/api/webhook/health", webhookHealthCheck);
   app.post("/api/webhook/test", webhookTest);
+  
+  // Fluxuz confirmation endpoint
+  app.post("/api/fluxuz/confirmation", handleFluxuzConfirmation);
   
   // tRPC API
   app.use(

@@ -109,3 +109,9 @@ leads:
 - [ ] Criar rota `/m/:slug` para compartilhamento de músicas
 - [ ] Verificar token/endpoint do Fluxuz (retornando 404)
 - [ ] Testar envio WhatsApp após corrigir Fluxuz
+
+## 🧹 Limpeza - Remover Dados de Teste
+- [x] Identificar campos pré-preenchidos em Create.tsx
+- [ ] Identificar campos pré-preenchidos em TestE2E.tsx
+- [x] Remover valores padrão do Create.tsx mantendo validação
+- [x] Testar formulários vazios - Create.tsx funcionando perfeitamente!

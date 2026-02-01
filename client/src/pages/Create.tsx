@@ -17,17 +17,18 @@ import { z } from "zod";
 import { trpc } from "@/lib/trpc";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
-import { Loader2, Music } from "lucide-react";
+import { Loader2, Music, MessageCircle } from "lucide-react";
 import { MUSIC_STYLES, MOODS } from "@shared/types";
 
 const createJobSchema = z.object({
+  name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
+  whatsapp: z.string().regex(/^\d{10,15}$/, "WhatsApp deve ter 10-15 dígitos (apenas números)"),
   story: z.string().min(10, "História deve ter pelo menos 10 caracteres"),
   style: z.enum(MUSIC_STYLES as unknown as [string, ...string[]]),
   title: z.string().min(1, "Título da música é obrigatório"),
   occasion: z.string().optional(),
   mood: z.enum(MOODS as unknown as [string, ...string[]]).optional(),
   voiceGender: z.enum(["Masculina", "Feminina"]).optional(),
-  email: z.string().email("Email inválido"),
   agreedToTerms: z.boolean().refine(v => v === true, "Você deve concordar com os termos"),
 });
 
@@ -58,7 +59,7 @@ export default function Create() {
   const onSubmit = async (data: CreateJobInput) => {
     try {
       const result = await createJobMutation.mutateAsync(data);
-      toast.success("Música em criação! Você receberá um email quando estiver pronta.");
+      toast.success("Música em criação! Você receberá uma mensagem no WhatsApp quando estiver pronta.");
       setLocation(result.statusUrl);
     } catch (error) {
       toast.error("Erro ao criar música. Tente novamente.");
@@ -85,13 +86,47 @@ export default function Create() {
                 <CardTitle>Dados da Música</CardTitle>
                 <CardDescription>Compartilhe a história e preferências musicais</CardDescription>
               </div>
-              <div className="flex items-center gap-2 px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
-                ✨ AI Gemini Ativo
+              <div className="flex items-center gap-2 px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                💬 WhatsApp
               </div>
             </div>
           </CardHeader>
           <CardContent className="pt-6">
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+              {/* Nome */}
+              <div className="space-y-2">
+                <Label htmlFor="name" className="font-semibold text-purple-800">
+                  Seu Nome *
+                </Label>
+                <Input
+                  id="name"
+                  placeholder="Ex: João Silva"
+                  className="border-slate-300 focus:border-purple-500 focus:ring-purple-500"
+                  {...register("name")}
+                />
+                {errors.name && (
+                  <p className="text-sm text-red-600">{errors.name.message}</p>
+                )}
+              </div>
+
+              {/* WhatsApp */}
+              <div className="space-y-2">
+                <Label htmlFor="whatsapp" className="font-semibold text-green-700 flex items-center gap-2">
+                  <MessageCircle className="w-4 h-4" />
+                  WhatsApp *
+                </Label>
+                <Input
+                  id="whatsapp"
+                  placeholder="Ex: 5511999999999 (apenas números)"
+                  className="border-slate-300 focus:border-green-500 focus:ring-green-500"
+                  {...register("whatsapp")}
+                />
+                {errors.whatsapp && (
+                  <p className="text-sm text-red-600">{errors.whatsapp.message}</p>
+                )}
+                <p className="text-xs text-slate-500">Você receberá a música por WhatsApp quando estiver pronta</p>
+              </div>
+
               {/* História */}
               <div className="space-y-2">
                 <Label htmlFor="story" className="font-semibold">
@@ -209,24 +244,6 @@ export default function Create() {
                 </p>
               </div>
 
-              {/* Email */}
-              <div className="space-y-2">
-                <Label htmlFor="email" className="font-semibold">
-                  Email para Entrega *
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="seu@email.com"
-                  className="border-slate-300"
-                  {...register("email")}
-                />
-                {errors.email && (
-                  <p className="text-sm text-red-600">{errors.email.message}</p>
-                )}
-                <p className="text-xs text-slate-500">Você receberá um email com sua música quando estiver pronta</p>
-              </div>
-
               {/* Termos */}
               <div className="space-y-2">
                 <div className="flex items-start gap-3">
@@ -301,8 +318,8 @@ export default function Create() {
           </Card>
           <Card className="border-slate-200">
             <CardContent className="pt-6 text-center">
-              <div className="text-3xl mb-2">🔒</div>
-              <p className="text-sm text-slate-600"><strong>Seguro</strong> - Seus dados protegidos</p>
+              <div className="text-3xl mb-2">💬</div>
+              <p className="text-sm text-slate-600"><strong>WhatsApp</strong> - Entrega direta</p>
             </CardContent>
           </Card>
         </div>

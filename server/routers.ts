@@ -30,6 +30,7 @@ export const appRouter = router({
           title: z.string().min(1, "Título da música é obrigatório"),
           occasion: z.string().optional(),
           mood: z.enum(MOODS as unknown as [string, ...string[]]).optional(),
+          voiceGender: z.enum(["Masculina", "Feminina"]).optional(),
           name: z.string().min(1, "Nome é obrigatório"),
           whatsapp: z.string().min(10, "WhatsApp inválido"),
           agreedToTerms: z.boolean().refine(v => v === true, "Você deve concordar com os termos"),

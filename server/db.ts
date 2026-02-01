@@ -230,22 +230,7 @@ export async function getLeadByJobId(jobId: string): Promise<Lead | undefined> {
   return result.length > 0 ? result[0] : undefined;
 }
 
-export async function markEmailSent(jobId: string): Promise<void> {
-  const db = await getDb();
-  if (!db) return;
-
-  try {
-    const song = await db.select().from(songs).where(eq(songs.jobId, jobId)).limit(1);
-    if (song.length > 0) {
-      await db
-        .update(songs)
-        .set({ emailSent: new Date() })
-        .where(eq(songs.id, song[0].id));
-    }
-  } catch (error) {
-    console.error("[Database] Error marking email as sent:", error);
-  }
-}
+// Email sending removed - using Fluxuz for WhatsApp instead
 
 export async function incrementDownloadCount(shareSlug: string): Promise<void> {
   const db = await getDb();

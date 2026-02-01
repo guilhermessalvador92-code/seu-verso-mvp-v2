@@ -47,7 +47,15 @@ export default function Create() {
   } = useForm<CreateJobInput>({
     resolver: zodResolver(createJobSchema),
     defaultValues: {
+      name: "Teste User",
+      whatsapp: "5511999999999",
+      story: "Uma história incrível de superação e amizade que atravessou gerações",
       style: "Pop",
+      title: "Minha Música Teste",
+      occasion: "Aniversário",
+      mood: "Alegre",
+      voiceGender: "Masculina",
+      agreedToTerms: true,
     },
   });
 

@@ -27,11 +27,11 @@ export interface FluxuzPushPayload {
  */
 export async function sendToFluxuz(payload: FluxuzPushPayload): Promise<boolean> {
   try {
-    const fluxuzApiUrl = process.env.FLUXUZ_API_URL || "https://api.fluxuz.com.br/webhook";
-    const fluxuzApiKey = process.env.FLUXUZ_API_KEY;
+    const fluxuzApiUrl = process.env.FLUXUZ_PUSH_URL || process.env.FLUXUZ_API_URL || "https://api.fluxuz.com.br/webhook";
+    const fluxuzApiKey = process.env.FLUXUZ_API_TOKEN || process.env.FLUXUZ_API_KEY;
 
     if (!fluxuzApiKey) {
-      console.warn("[Fluxuz] FLUXUZ_API_KEY not configured");
+      console.warn("[Fluxuz] FLUXUZ_API_TOKEN or FLUXUZ_API_KEY not configured");
       return false;
     }
 

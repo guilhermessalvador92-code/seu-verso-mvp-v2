@@ -1,0 +1,16 @@
+{
+  "query": "SELECT id, status, sunoTaskId, createdAt FROM jobs WHERE id = 'LXF7hZ12P5kJwGWOHHsIw';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2WoMmgAVQngHs1c.root --database JUytjrxpDuMzcewywYRDnZ --execute SELECT id, status, sunoTaskId, createdAt FROM jobs WHERE id = 'LXF7hZ12P5kJwGWOHHsIw';",
+  "rows": [
+    {
+      "id": "LXF7hZ12P5kJwGWOHHsIw",
+      "status": "PROCESSING",
+      "sunoTaskId": "c4e0b5573dcae8be575acb90f72d19cc",
+      "createdAt": "2026-02-01 20:13:39"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tstatus\tsunoTaskId\tcreatedAt\nLXF7hZ12P5kJwGWOHHsIw\tPROCESSING\tc4e0b5573dcae8be575acb90f72d19cc\t2026-02-01 20:13:39\n",
+  "stderr": "",
+  "execution_time_ms": 412
+}

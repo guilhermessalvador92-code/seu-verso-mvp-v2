@@ -89,3 +89,10 @@ leads:
 - [x] Limpar migrações antigas
 - [x] Regenerar schema limpo
 - [x] Testar inicialização do banco
+
+## 🔄 Mudança de Escopo - Remover Gemini do MVP
+- [x] Atualizar SUNO_API_KEY com nova chave
+- [x] Remover processamento Gemini do fluxo
+- [x] Enviar prompt direto para Suno (sem LLM)
+- [x] Testar criação de música end-to-end
+- [x] Validar envio WhatsApp (aguardando webhook)

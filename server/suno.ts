@@ -94,8 +94,9 @@ export async function generateMusicWithSuno(
   // Usar endpoint de geração normal conforme documentação oficial
 
   try {
-    // Gerar prompt otimizado com LLM (Gemini) ANTES de enviar para Suno
-    const prompt = await buildPromptWithLLM(story, names, occasion, mood, language);
+    // REMOVIDO: Gemini (limite diário atingido muito rápido)
+    // Usar fallback direto para MVP
+    const prompt = buildFallbackPrompt(story, names, occasion, mood, language);
 
     // Mapear estilo musical para o formato esperado pela Suno
     const sunoStyle = mapMusicStyle(style);

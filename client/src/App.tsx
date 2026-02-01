@@ -8,6 +8,7 @@ import Home from "./pages/Home";
 import Create from "./pages/Create";
 import Status from "./pages/Status";
 import QuickTest from "./pages/QuickTest";
+import TestE2E from "./pages/TestE2E";
 
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
@@ -19,6 +20,7 @@ function Router() {
       <Route path={"/create"} component={Create} />
       <Route path={"/status/:jobId"} component={Status} />
       <Route path={"/quick-test"} component={QuickTest} />
+      <Route path={"/test-e2e"} component={TestE2E} />
 
       <Route path={"/termos"} component={Terms} />
       <Route path={"/privacidade"} component={Privacy} />

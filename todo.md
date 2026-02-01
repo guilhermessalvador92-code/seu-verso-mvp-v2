@@ -135,3 +135,40 @@
 - [x] Configurar variáveis de ambiente (FLUXUZ_API_KEY, FLUXUZ_API_URL)
 - [x] Testar integração end-to-end
 - [x] Documentar fluxo completo
+
+
+## 🔴 Bugs Críticos - Sessão Atual
+- [ ] Corrigir erro SQL de migração: "error in your SQL syntax near 'IF NOT EXISTS `jobId`'"
+- [ ] Corrigir payload Fluxuz - adicionar informações completas da música (nome, título, link)
+- [ ] Resolver erro 403 no Fluxuz (autenticação)
+- [ ] Corrigir mensagem WhatsApp - substituir {{data_data_name}} e {{msg}} por dados reais
+
+## ✅ Melhorias Recentes
+- [x] Corrigir lógica Gemini (processar ANTES da Suno)
+- [x] Adicionar seleção de idioma (PT-BR, ES, EN-US, EN-GB)
+- [x] Expandir ocasiões (6 opções: Aniversário, Casamento, Serenata, Mensagem Positiva, Jingle Político, Meme)
+- [x] Fallback quando Gemini falhar
+- [x] Formulário pré-preenchido para testes
+- [x] Página de teste rápido (/quick-test)
+- [x] Simplificar payload Fluxuz (estrutura plana ao invés de aninhada)
+- [x] Adicionar variáveis diretas: name, whatsapp, musicTitle, audioUrl, musicUrl, shareSlug, jobId
+- [x] Criar teste de validação do payload
+
+## 🔄 Simplificação Fluxuz - PUSH Webhook
+- [ ] Remover autenticação Bearer do código Fluxuz
+- [ ] Atualizar URL para webhook PUSH: https://crmapi.fluxuz.com.br/w/ffde438a-22a9-4abb-8223-f0adc15412fc
+- [ ] Testar com curl sem autenticação
+- [ ] Validar envio funcionando
+
+## 🔄 Correção Fluxuz API Externa
+- [ ] Atualizar FLUXUZ_API_URL para API externa com token
+- [ ] Remover webhook PUSH (não funciona)
+- [ ] Ajustar payload para formato correto da API
+- [ ] Testar envio de mensagem com curl
+- [ ] Criar página de teste end-to-end
+- [ ] Validar fluxo completo
+- [x] Criar página de teste end-to-end (/test-e2e)
+- [x] Adicionar rota /test-e2e no App.tsx
+- [x] Implementar polling manual na página de teste
+- [x] Exibir logs em tempo real
+- [x] Mostrar status visual do fluxo

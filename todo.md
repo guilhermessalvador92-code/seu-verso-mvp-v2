@@ -115,3 +115,19 @@ leads:
 - [ ] Identificar campos pré-preenchidos em TestE2E.tsx
 - [x] Remover valores padrão do Create.tsx mantendo validação
 - [x] Testar formulários vazios - Create.tsx funcionando perfeitamente!
+
+## 🎵 Feature PREMIUM - Wizard de Letras (Custom Mode)
+- [x] Criar branch feat/premium-lyrics-wizard
+- [x] Implementar sistema de sessões em memória
+- [x] POST /api/lyrics/generate (máx 3 páginas)
+- [x] GET /api/lyrics/status/:taskId
+- [x] GET /api/lyrics/session/:sessionId
+- [x] GET /api/lyrics/session/:sessionId/page/:pageNumber
+- [x] POST /api/lyrics/session/:sessionId/select
+- [x] POST /api/music/start (customMode)
+- [x] Corrigir webhook para resposta 200 imediata
+- [x] Adicionar idempotência no webhook
+- [x] Criar README com curl examples
+- [x] Criar docs/API_CONTRACT.md
+- [x] Criar docs/EXAMPLES.md
+- [ ] Abrir PR

@@ -12,6 +12,9 @@ import { getJobById, getSongsByJobId } from "../db";
 import { handleFluxuzConfirmation } from "../fluxuz";
 // Email system removed - using WhatsApp only
 import { initializeDatabaseSchema } from "../db-init";
+import lyricsRoutes from "../routes-lyrics";
+import musicRoutes from "../routes-music";
+import webhooksRoutes from "../routes-webhooks";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -91,6 +94,11 @@ async function startServer() {
   
   // Fluxuz confirmation endpoint
   app.post("/api/fluxuz/confirmation", handleFluxuzConfirmation);
+  
+  // Premium API routes
+  app.use("/api/lyrics", lyricsRoutes);
+  app.use("/api/music", musicRoutes);
+  app.use("/api/webhooks", webhooksRoutes);
   
   // tRPC API
   app.use(

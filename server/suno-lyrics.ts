@@ -16,7 +16,7 @@ export interface GenerateLyricsResponse {
   code: number;
   msg: string;
   data: {
-    task_id: string;
+    taskId: string;
   };
 }
 
@@ -24,25 +24,30 @@ export interface LyricsStatusResponse {
   code: number;
   msg: string;
   data: {
-    task_id: string;
-    status: string; // "pending" | "success" | "failed"
-    lyrics?: Array<{
-      text: string;
-      title?: string;
-    }>;
+    taskId: string;
+    status: string; // "PENDING" | "SUCCESS" | "FAILED"
+    response?: {
+      taskId: string;
+      data: Array<{
+        text: string;
+        title: string;
+        status: string;
+        errorMessage: string;
+      }>;
+    };
   };
 }
 
-export async function generateLyrics(prompt: string): Promise<GenerateLyricsResponse> {
+export async function generateLyrics(prompt: string, callbackUrl: string): Promise<GenerateLyricsResponse> {
   console.log("[Suno Lyrics] Generating lyrics...", { prompt: prompt.substring(0, 100) });
 
-  const response = await fetch(`${SUNO_BASE_URL}/lyrics/generate`, {
+  const response = await fetch(`${SUNO_BASE_URL}/lyrics`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "api-key": SUNO_API_KEY,
+      "Authorization": `Bearer ${SUNO_API_KEY}`,
     },
-    body: JSON.stringify({ prompt }),
+    body: JSON.stringify({ prompt, callBackUrl: callbackUrl }),
   });
 
   if (!response.ok) {
@@ -55,7 +60,8 @@ export async function generateLyrics(prompt: string): Promise<GenerateLyricsResp
   }
 
   const data: GenerateLyricsResponse = await response.json();
-  console.log("[Suno Lyrics] Generation started", { taskId: data.data.task_id });
+  console.log("[Suno Lyrics] Full response:", JSON.stringify(data));
+  console.log("[Suno Lyrics] Generation started", { taskId: data.data?.taskId });
   return data;
 }
 
@@ -65,7 +71,7 @@ export async function getLyricsStatus(taskId: string): Promise<LyricsStatusRespo
   const response = await fetch(`${SUNO_BASE_URL}/lyrics/record-info?taskId=${taskId}`, {
     method: "GET",
     headers: {
-      "api-key": SUNO_API_KEY,
+      "Authorization": `Bearer ${SUNO_API_KEY}`,
     },
   });
 
@@ -82,7 +88,7 @@ export async function getLyricsStatus(taskId: string): Promise<LyricsStatusRespo
   console.log("[Suno Lyrics] Status retrieved", {
     taskId,
     status: data.data.status,
-    lyricsCount: data.data.lyrics?.length || 0,
+    lyricsCount: data.data.response?.data?.length || 0,
   });
   return data;
 }

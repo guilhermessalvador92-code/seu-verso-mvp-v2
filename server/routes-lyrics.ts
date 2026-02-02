@@ -44,7 +44,8 @@ router.post("/generate", async (req, res) => {
     }
 
     // Generate lyrics via Suno
-    const result = await generateLyrics(wizard.prompt);
+    const callbackUrl = `${process.env.APP_URL || 'http://localhost:3000'}/api/webhooks/suno-lyrics`;
+    const result = await generateLyrics(wizard.prompt, callbackUrl);
 
     if (result.code !== 200) {
       return res.status(500).json({
@@ -55,12 +56,12 @@ router.post("/generate", async (req, res) => {
 
     // Add page to session
     const pageNumber = session.pages.size + 1;
-    lyricsSessionManager.addPage(sessionId, pageNumber, result.data.task_id);
+    lyricsSessionManager.addPage(sessionId, pageNumber, result.data.taskId);
 
     res.json({
       sessionId,
       pageNumber,
-      taskId: result.data.task_id,
+      taskId: result.data.taskId,
       remainingRegens: lyricsSessionManager.getRemainingRegens(sessionId),
     });
   } catch (error: any) {
@@ -102,10 +103,11 @@ router.get("/status/:taskId", async (req, res) => {
       });
     }
 
-    const { status, lyrics } = result.data;
+    const { status, response } = result.data;
+    const lyrics = response?.data || [];
 
     // If success, update session (find by taskId)
-    if (status === "success" && lyrics && lyrics.length > 0) {
+    if (status === "SUCCESS" && lyrics && lyrics.length > 0) {
       // Find session by taskId
       const allSessions = Array.from((lyricsSessionManager as any).sessions.values());
       for (const session of allSessions) {
@@ -117,6 +119,7 @@ router.get("/status/:taskId", async (req, res) => {
               "SUCCESS",
               lyrics.map((l, index) => ({
                 text: l.text,
+                title: l.title,
                 index,
               }))
             );
@@ -129,8 +132,9 @@ router.get("/status/:taskId", async (req, res) => {
     res.json({
       taskId,
       status,
-      lyrics: lyrics?.map((l, index) => ({
+      lyrics: lyrics.map((l, index) => ({
         text: l.text,
+        title: l.title,
         index,
       })),
     });

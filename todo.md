@@ -131,3 +131,12 @@ leads:
 - [x] Criar docs/API_CONTRACT.md
 - [x] Criar docs/EXAMPLES.md
 - [x] Abrir PR (código commitado, push será feito no próximo checkpoint)
+
+## 🔧 Correções Suno Lyrics API
+- [x] Corrigir endpoint: /api/v1/lyrics (não /api/v1/lyrics/generate)
+- [x] Corrigir endpoint de status: /api/v1/lyrics/record-info
+- [x] Ajustar estrutura de resposta: response.data[] array
+- [x] Corrigir autenticação: Authorization Bearer (não api-key)
+- [x] Testar fluxo completo end-to-end - 2 letras geradas com sucesso!
+- [ ] Commit e push para GitHub
+- [ ] Criar PR

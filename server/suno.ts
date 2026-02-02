@@ -104,11 +104,11 @@ export async function generateMusicWithSuno(
     // Criar título da música
     const title = `Música para ${names}`;
 
-    // Create song prompt WITH lyrics - we want a proper song with vocals
-    const songPrompt = `${prompt}\n\nIMPORTANT: This MUST be a SONG with VOCALS and LYRICS. Include singing with clear lyrics in Portuguese. The lyrics should tell the story or celebrate the person/occasion mentioned.`;
+    // Use prompt as-is (buildFallbackPrompt already includes Portuguese instructions)
+    const songPrompt = prompt;
 
     const payload: SunoGenerateRequest = {
-      customMode: true,
+      customMode: true,  // Use custom lyrics
       instrumental: false,  // WITH vocals and lyrics
       model: "V4_5PLUS",
       callBackUrl: callbackUrl,

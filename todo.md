@@ -140,3 +140,9 @@ leads:
 - [x] Testar fluxo completo end-to-end - 2 letras geradas com sucesso!
 - [x] Commit e push para GitHub (será sincronizado no próximo checkpoint)
 - [ ] Criar PR
+
+## 🐛 BUG CRÍTICO - Prompt vazando para música
+- [x] Investigar geração de música (suno.ts)
+- [x] Verificar se está enviando prompt ao invés de letras - CONFIRMADO!
+- [x] Corrigir customMode: false para fluxo legado (deixa Suno gerar letras)
+- [ ] Testar criação de música

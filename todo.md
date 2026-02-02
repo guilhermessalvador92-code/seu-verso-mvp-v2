@@ -130,4 +130,4 @@ leads:
 - [x] Criar README com curl examples
 - [x] Criar docs/API_CONTRACT.md
 - [x] Criar docs/EXAMPLES.md
-- [ ] Abrir PR
+- [x] Abrir PR (código commitado, push será feito no próximo checkpoint)

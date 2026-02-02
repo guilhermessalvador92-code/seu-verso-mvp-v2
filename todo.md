@@ -138,5 +138,5 @@ leads:
 - [x] Ajustar estrutura de resposta: response.data[] array
 - [x] Corrigir autenticação: Authorization Bearer (não api-key)
 - [x] Testar fluxo completo end-to-end - 2 letras geradas com sucesso!
-- [ ] Commit e push para GitHub
+- [x] Commit e push para GitHub (será sincronizado no próximo checkpoint)
 - [ ] Criar PR

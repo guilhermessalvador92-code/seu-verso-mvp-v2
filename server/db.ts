@@ -17,13 +17,18 @@ const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000; // 1 second
 
 /**
- * Wraps database operations with retry logic for transient connection errors
+ * Wraps database operations with retry logic for transient connection errors.
+ * Attempts the operation up to MAX_RETRIES times with exponential backoff.
+ * Retry delays: 1s (attempt 1), 2s (attempt 2), 3s (attempt 3)
  */
 async function withRetry<T>(operation: () => Promise<T>): Promise<T> {
+  let lastError: any;
+  
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
       return await operation();
     } catch (error: any) {
+      lastError = error;
       const isConnectionError = 
         error.code === 'PROTOCOL_CONNECTION_LOST' ||
         error.code === 'ECONNRESET' ||
@@ -38,7 +43,10 @@ async function withRetry<T>(operation: () => Promise<T>): Promise<T> {
       throw error;
     }
   }
-  throw new Error('Max retries exceeded');
+  
+  // This should never be reached due to the throw in the loop,
+  // but TypeScript requires it for type safety
+  throw lastError || new Error('Max retries exceeded');
 }
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
@@ -61,7 +69,7 @@ export async function getDb() {
       _db = drizzle(_pool);
       console.log("[Database] Connection pool initialized successfully");
     } catch (error) {
-      console.warn("[Database] Failed to connect:", error);
+      console.error("[Database] Failed to create connection pool:", error);
       _db = null;
       _pool = null;
     }

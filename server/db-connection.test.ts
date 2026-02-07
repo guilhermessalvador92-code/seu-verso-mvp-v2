@@ -36,21 +36,18 @@ describe("Database Connection Pool and Retry Logic", () => {
   });
 
   describe("Connection Pool Configuration", () => {
-    it("should initialize with proper pool settings", async () => {
-      // This test verifies the pool is created with the expected settings
-      // The actual pool settings are checked during getDb() initialization
-      const originalUrl = process.env.DATABASE_URL;
-      
-      if (!originalUrl) {
+    it("should initialize database connection when DATABASE_URL is configured", async () => {
+      // Skip this test if DATABASE_URL is not configured
+      if (!process.env.DATABASE_URL) {
         console.log("[Test] Skipping pool configuration test - DATABASE_URL not configured");
         return;
       }
 
-      // The pool is created lazily, so we need to trigger it
-      await checkDatabaseConnection();
+      // Trigger pool initialization by checking database connection
+      const result = await checkDatabaseConnection();
       
-      // If we get here without errors, the pool was created successfully
-      expect(true).toBe(true);
+      // Verify the connection was successful, which means the pool was created
+      expect(result).toBe(true);
     });
   });
 

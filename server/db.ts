@@ -1,23 +1,77 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
+import mysql from "mysql2";
 import { InsertUser, users, jobs, songs, leads, Job, Song, Lead, InsertJob, InsertSong, InsertLead } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
+let _pool: mysql.Pool | null = null;
 
 // In-memory fallback storage used when DATABASE_URL is not configured
 const _mockJobs: InsertJob[] = [];
 const _mockSongs: InsertSong[] = [];
 const _mockLeads: InsertLead[] = [];
 
+// Retry configuration
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000; // 1 second
+
+/**
+ * Wraps database operations with retry logic for transient connection errors.
+ * Attempts the operation up to MAX_RETRIES times with exponential backoff.
+ * Retry delays: 1s (attempt 1), 2s (attempt 2), 3s (attempt 3)
+ */
+async function withRetry<T>(operation: () => Promise<T>): Promise<T> {
+  let lastError: any;
+  
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      return await operation();
+    } catch (error: any) {
+      lastError = error;
+      const isConnectionError = 
+        error.code === 'PROTOCOL_CONNECTION_LOST' ||
+        error.code === 'ECONNRESET' ||
+        error.code === 'ETIMEDOUT' ||
+        error.code === 'ECONNREFUSED';
+      
+      if (isConnectionError && attempt < MAX_RETRIES) {
+        console.warn(`[Database] Connection error, retrying (${attempt}/${MAX_RETRIES})...`);
+        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * attempt));
+        continue;
+      }
+      throw error;
+    }
+  }
+  
+  // This should never be reached due to the throw in the loop,
+  // but TypeScript requires it for type safety
+  throw lastError || new Error('Max retries exceeded');
+}
+
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      _db = drizzle(process.env.DATABASE_URL);
+      // Create connection pool with proper settings
+      _pool = mysql.createPool({
+        uri: process.env.DATABASE_URL,
+        waitForConnections: true,
+        connectionLimit: 10,
+        queueLimit: 0,
+        enableKeepAlive: true,
+        keepAliveInitialDelay: 10000, // 10 seconds
+        idleTimeout: 60000, // 60 seconds
+        maxIdle: 5,
+      });
+      
+      // Initialize drizzle with the pool
+      _db = drizzle(_pool);
+      console.log("[Database] Connection pool initialized successfully");
     } catch (error) {
-      console.warn("[Database] Failed to connect:", error);
+      console.error("[Database] Failed to create connection pool:", error);
       _db = null;
+      _pool = null;
     }
   }
   return _db;
@@ -34,7 +88,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     return;
   }
 
-  try {
+  return withRetry(async () => {
     const values: InsertUser = {
       openId: user.openId,
     };
@@ -76,10 +130,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     await db.insert(users).values(values).onDuplicateKeyUpdate({
       set: updateSet,
     });
-  } catch (error) {
-    console.error("[Database] Failed to upsert user:", error);
-    throw error;
-  }
+  });
 }
 
 export async function getUserByOpenId(openId: string) {
@@ -100,8 +151,11 @@ export async function createJob(data: InsertJob): Promise<Job | undefined> {
     _mockJobs.push(data);
     return data as Job;
   }
-  await db.insert(jobs).values(data);
-  return data as Job;
+  
+  return withRetry(async () => {
+    await db.insert(jobs).values(data);
+    return data as Job;
+  });
 }
 
 export async function getJobById(jobId: string): Promise<Job | undefined> {
@@ -134,7 +188,10 @@ export async function updateJobStatus(jobId: string, status: Job["status"]): Pro
     }
     return;
   }
-  await db.update(jobs).set({ status, updatedAt: new Date() }).where(eq(jobs.id, jobId));
+  
+  return withRetry(async () => {
+    await db.update(jobs).set({ status, updatedAt: new Date() }).where(eq(jobs.id, jobId));
+  });
 }
 
 export async function updateJobSunoTaskId(jobId: string, sunoTaskId: string): Promise<void> {
@@ -147,7 +204,10 @@ export async function updateJobSunoTaskId(jobId: string, sunoTaskId: string): Pr
     }
     return;
   }
-  await db.update(jobs).set({ sunoTaskId, updatedAt: new Date() }).where(eq(jobs.id, jobId));
+  
+  return withRetry(async () => {
+    await db.update(jobs).set({ sunoTaskId, updatedAt: new Date() }).where(eq(jobs.id, jobId));
+  });
 }
 
 export async function updateSongAudioUrl(jobId: string, audioUrl: string, title?: string): Promise<void> {
@@ -160,9 +220,12 @@ export async function updateSongAudioUrl(jobId: string, audioUrl: string, title?
     }
     return;
   }
-  const updateData: Record<string, unknown> = { audioUrl };
-  if (title) updateData.title = title;
-  await db.update(songs).set(updateData).where(eq(songs.jobId, jobId));
+  
+  return withRetry(async () => {
+    const updateData: Record<string, unknown> = { audioUrl };
+    if (title) updateData.title = title;
+    await db.update(songs).set(updateData).where(eq(songs.jobId, jobId));
+  });
 }
 
 export async function createSong(data: InsertSong): Promise<Song | undefined> {
@@ -176,8 +239,11 @@ export async function createSong(data: InsertSong): Promise<Song | undefined> {
     _mockSongs.push(songData);
     return songData as Song;
   }
-  await db.insert(songs).values(data);
-  return data as Song;
+  
+  return withRetry(async () => {
+    await db.insert(songs).values(data);
+    return data as Song;
+  });
 }
 
 export async function getSongByJobId(jobId: string): Promise<Song | undefined> {
@@ -216,8 +282,11 @@ export async function createLead(data: InsertLead): Promise<Lead | undefined> {
     _mockLeads.push(data);
     return data as Lead;
   }
-  await db.insert(leads).values(data);
-  return data as Lead;
+  
+  return withRetry(async () => {
+    await db.insert(leads).values(data);
+    return data as Lead;
+  });
 }
 
 export async function getLeadByJobId(jobId: string): Promise<Lead | undefined> {
@@ -232,11 +301,29 @@ export async function getLeadByJobId(jobId: string): Promise<Lead | undefined> {
 
 // Email sending removed - using Fluxuz for WhatsApp instead
 
+/**
+ * Verify database connection on startup
+ */
+export async function checkDatabaseConnection(): Promise<boolean> {
+  try {
+    const db = await getDb();
+    if (!db) return false;
+    
+    // Simple query to test connection
+    await db.execute(sql`SELECT 1`);
+    console.log("[Database] Connection verified successfully");
+    return true;
+  } catch (error) {
+    console.error("[Database] Connection check failed:", error);
+    return false;
+  }
+}
+
 export async function incrementDownloadCount(shareSlug: string): Promise<void> {
   const db = await getDb();
   if (!db) return;
 
-  try {
+  return withRetry(async () => {
     const song = await db.select().from(songs).where(eq(songs.shareSlug, shareSlug)).limit(1);
     if (song.length > 0) {
       const currentCount = song[0].downloadCount || 0;
@@ -245,7 +332,5 @@ export async function incrementDownloadCount(shareSlug: string): Promise<void> {
         .set({ downloadCount: currentCount + 1 })
         .where(eq(songs.shareSlug, shareSlug));
     }
-  } catch (error) {
-    console.error("[Database] Error incrementing download count:", error);
-  }
+  });
 }

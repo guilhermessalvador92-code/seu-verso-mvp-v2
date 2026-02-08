@@ -230,6 +230,11 @@ export async function webhookTest(req: Request, res: Response) {
   }
 }
 
+// Constants for lyrics webhook
+const LYRICS_PREVIEW_LENGTH = 150;
+const LYRICS_SHORT_PREVIEW_LENGTH = 100;
+const DEFAULT_APP_URL = "https://seu-verso-mvp-v2.onrender.com";
+
 /**
  * Handle lyrics generation callback from Suno API
  * When lyrics are ready, trigger music generation with the actual lyrics
@@ -251,8 +256,13 @@ export async function handleLyricsCallback(req: Request, res: Response) {
   try {
     const body = req.body;
     
-    // Log raw payload for debugging
-    console.log("[Webhook Lyrics] Raw payload received:", JSON.stringify(body, null, 2));
+    // Log payload structure for debugging (sanitized)
+    console.log("[Webhook Lyrics] Callback received:", {
+      hasCode: !!body.code,
+      hasMsg: !!body.msg,
+      hasData: !!body.data,
+      dataKeys: body.data ? Object.keys(body.data) : []
+    });
     
     const { code, msg, data } = body;
 
@@ -332,7 +342,7 @@ export async function handleLyricsCallback(req: Request, res: Response) {
         jobId: job.id,
         title: lyricsTitle,
         lyricsLength: lyrics.length,
-        preview: lyrics.substring(0, 150).replace(/\n/g, " ") + "..."
+        preview: lyrics.substring(0, LYRICS_PREVIEW_LENGTH).replace(/\n/g, " ") + "..."
       });
 
       // Update job status
@@ -347,14 +357,14 @@ export async function handleLyricsCallback(req: Request, res: Response) {
       }
 
       // Trigger music generation with ACTUAL LYRICS
-      const appUrl = process.env.APP_URL || "https://seu-verso-mvp-v2.onrender.com";
+      const appUrl = process.env.APP_URL || DEFAULT_APP_URL;
       const musicCallbackUrl = `${appUrl}/api/webhook/suno`;
       
       console.log("[Webhook Lyrics] 🎵 Triggering music generation with lyrics:", {
         jobId: job.id,
         style: lead.style,
         name: lead.name,
-        lyricsPreview: lyrics.substring(0, 100) + "..."
+        lyricsPreview: lyrics.substring(0, LYRICS_SHORT_PREVIEW_LENGTH) + "..."
       });
       
       const musicTaskId = await generateMusicWithLyrics(
@@ -403,7 +413,7 @@ async function handleLyricsFallback(jobId: string) {
 
     await updateJobStatus(jobId, "GENERATING_MUSIC");
     
-    const appUrl = process.env.APP_URL || "https://seu-verso-mvp-v2.onrender.com";
+    const appUrl = process.env.APP_URL || DEFAULT_APP_URL;
     const callbackUrl = `${appUrl}/api/webhook/suno`;
     
     console.log("[Webhook Lyrics] Fallback - generating music directly:", {

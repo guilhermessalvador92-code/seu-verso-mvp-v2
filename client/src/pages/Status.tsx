@@ -3,6 +3,9 @@ import { useRoute, useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle, AlertCircle, Download } from "lucide-react";
+import { isLabEnvironment } from "@/lib/environment";
+import ProductionLayout from "@/components/ProductionLayout";
+import LabLayout from "@/components/LabLayout";
 
 interface Song {
   title: string;
@@ -17,6 +20,7 @@ interface StatusResponse {
 }
 
 export default function Status() {
+  const Layout = isLabEnvironment() ? LabLayout : ProductionLayout;
   const [match, params] = useRoute("/status/:jobId");
   const [, setLocation] = useLocation();
   const jobId = params?.jobId;
@@ -64,57 +68,63 @@ export default function Status() {
 
   if (!match || !jobId) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white flex items-center justify-center">
-        <Card className="border-slate-200 w-full max-w-md">
-          <CardContent className="pt-6 text-center">
-            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <p className="text-slate-900 font-semibold mb-4">Job não encontrado</p>
-            <Button onClick={() => setLocation("/")} className="bg-purple-600 hover:bg-purple-700">
-              Voltar para Home
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+      <Layout>
+        <div className="flex items-center justify-center py-24">
+          <Card className="border-slate-200 w-full max-w-md">
+            <CardContent className="pt-6 text-center">
+              <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+              <p className="text-slate-900 font-semibold mb-4">Job não encontrado</p>
+              <Button onClick={() => setLocation("/")} className="bg-purple-600 hover:bg-purple-700">
+                Voltar para Home
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
     );
   }
 
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white flex items-center justify-center">
-        <Card className="border-slate-200 w-full max-w-md">
-          <CardContent className="pt-6 text-center">
-            <Loader2 className="w-12 h-12 text-purple-600 mx-auto mb-4 animate-spin" />
-            <p className="text-slate-900 font-semibold">Carregando...</p>
-          </CardContent>
-        </Card>
-      </div>
+      <Layout>
+        <div className="flex items-center justify-center py-24">
+          <Card className="border-slate-200 w-full max-w-md">
+            <CardContent className="pt-6 text-center">
+              <Loader2 className="w-12 h-12 text-purple-600 mx-auto mb-4 animate-spin" />
+              <p className="text-slate-900 font-semibold">Carregando...</p>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
     );
   }
 
   // Error state
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white flex items-center justify-center">
-        <Card className="border-slate-200 w-full max-w-md">
-          <CardContent className="pt-6 text-center">
-            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <p className="text-slate-900 font-semibold mb-2">Erro</p>
-            <p className="text-slate-600 mb-4">{error}</p>
-            <Button onClick={fetchStatus} className="bg-purple-600 hover:bg-purple-700">
-              Tentar Novamente
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+      <Layout>
+        <div className="flex items-center justify-center py-24">
+          <Card className="border-slate-200 w-full max-w-md">
+            <CardContent className="pt-6 text-center">
+              <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+              <p className="text-slate-900 font-semibold mb-2">Erro</p>
+              <p className="text-slate-600 mb-4">{error}</p>
+              <Button onClick={fetchStatus} className="bg-purple-600 hover:bg-purple-700">
+                Tentar Novamente
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
     );
   }
 
   // Failed state
   if (status?.status === "FAILED") {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-12">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+      <Layout>
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <Card className="border-slate-200 shadow-lg">
             <CardHeader className="bg-gradient-to-r from-red-50 to-rose-50 border-b border-slate-200">
               <div className="flex items-center gap-3 mb-4">
@@ -149,7 +159,7 @@ export default function Status() {
             </CardContent>
           </Card>
         </div>
-      </div>
+      </Layout>
     );
   }
 
@@ -158,8 +168,8 @@ export default function Status() {
     const song = status.songs[0];
     
     return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-12">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+      <Layout>
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <Card className="border-slate-200 shadow-lg">
             <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b border-slate-200">
               <div className="flex items-center gap-3 mb-4">
@@ -240,14 +250,14 @@ export default function Status() {
             </CardContent>
           </Card>
         </div>
-      </div>
+      </Layout>
     );
   }
 
   // Processing state
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-12">
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+    <Layout>
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <Card className="border-slate-200 shadow-lg">
           <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 border-b border-slate-200">
             <CardTitle className="text-2xl">Sua Música Está Sendo Criada</CardTitle>
@@ -291,6 +301,6 @@ export default function Status() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </Layout>
   );
 }

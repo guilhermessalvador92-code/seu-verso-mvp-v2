@@ -17,8 +17,11 @@ import { z } from "zod";
 import { trpc } from "@/lib/trpc";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
-import { Loader2, Music, MessageCircle } from "lucide-react";
+import { Loader2, MessageCircle } from "lucide-react";
 import { MUSIC_STYLES, MOODS, LANGUAGES, OCCASIONS } from "@shared/types";
+import { isLabEnvironment } from "@/lib/environment";
+import ProductionLayout from "@/components/ProductionLayout";
+import LabLayout from "@/components/LabLayout";
 
 const createJobSchema = z.object({
   name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
@@ -36,6 +39,7 @@ const createJobSchema = z.object({
 type CreateJobInput = z.infer<typeof createJobSchema>;
 
 export default function Create() {
+  const Layout = isLabEnvironment() ? LabLayout : ProductionLayout;
   const [, setLocation] = useLocation();
   const createJobMutation = trpc.jobs.create.useMutation();
 
@@ -71,14 +75,11 @@ export default function Create() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-12">
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+    <Layout>
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center gap-3 mb-4">
-            <Music className="w-8 h-8 text-purple-600" />
-            <h1 className="text-3xl font-bold text-slate-900">Criar Minha Música</h1>
-          </div>
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">Criar Minha Música</h1>
           <p className="text-slate-600">Preencha os dados abaixo para criar uma música personalizada</p>
         </div>
 
@@ -355,6 +356,6 @@ export default function Create() {
           </Card>
         </div>
       </div>
-    </div>
+    </Layout>
   );
 }

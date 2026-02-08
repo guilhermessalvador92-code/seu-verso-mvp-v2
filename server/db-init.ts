@@ -63,8 +63,7 @@ export async function initializeDatabaseSchema(attempt: number = 1): Promise<boo
           if (
             error.message?.includes("already exists") ||
             error.code === "42P07" ||
-            error.code === "42710" ||
-            error.message?.includes("does not exist")
+            error.code === "42710"
           ) {
             skipCount++;
           } else {

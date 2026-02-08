@@ -389,16 +389,16 @@ export async function generateLyricsWithSuno(
     prompt += `Estilo Musical: ${style}\n\n`;
     prompt += `História/Contexto:\n${story}\n\n`;
     prompt += `INSTRUÇÕES:\n`;
-    prompt += `- A letra DEVE ser 100% em português brasileiro\n`;
+    prompt += `- A letra DEVE ser 100% em ${lang}\n`;
     prompt += `- Incluir estrutura: [Verse], [Pre-Chorus], [Chorus], [Bridge]\n`;
     prompt += `- Rimas naturais e bem pensadas\n`;
     prompt += `- Mensagem emocional e memorável\n`;
     prompt += `- Duração: 2-3 minutos de música`;
 
     // Limit to 200 words as per API docs
-    if (prompt.split(/\s+/).length > 200) {
-      const words = prompt.split(/\s+/).slice(0, 195);
-      prompt = words.join(' ') + '...';
+    const words = prompt.split(/\s+/);
+    if (words.length > 200) {
+      prompt = words.slice(0, 195).join(' ') + '...';
     }
 
     const payload: LyricsGenerateRequest = {

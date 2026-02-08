@@ -263,7 +263,7 @@ export async function handleLyricsCallback(req: Request, res: Response) {
           // Continue with fallback prompt
           const lead = await getLeadByJobId(job.id);
           if (lead) {
-            const appUrl = process.env.APP_URL || "https://seu-verso-mvp-v2.onrender.com";
+          const appUrl = process.env.APP_URL || "http://localhost:3000";
             const callbackUrl = `${appUrl}/api/webhook/suno`;
             await generateMusicWithSuno(
               job.id,
@@ -311,7 +311,7 @@ export async function handleLyricsCallback(req: Request, res: Response) {
       // Now generate music with the actual lyrics
       const lead = await getLeadByJobId(job.id);
       if (lead) {
-        const appUrl = process.env.APP_URL || "https://seu-verso-mvp-v2.onrender.com";
+        const appUrl = process.env.APP_URL || "http://localhost:3000";
         const callbackUrl = `${appUrl}/api/webhook/suno`;
         
         // Call generate music with lyrics as prompt

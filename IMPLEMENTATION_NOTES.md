@@ -42,8 +42,8 @@ If lyrics generation fails:
 ## Required Environment Variables
 
 ```env
-FLUXUZ_API_URL=https://crmapi.fluxuz.com.br/v1/api/external/[ID]/
-FLUXUZ_API_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+FLUXUZ_API_URL=https://crmapi.fluxuz.com.br/v1/api/external/[YOUR_ID_HERE]/
+FLUXUZ_API_TOKEN=[YOUR_TOKEN_HERE]
 SUNO_API_KEY=[YOUR_SUNO_KEY]
 APP_URL=https://seu-verso-mvp-v2.onrender.com
 ```

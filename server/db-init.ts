@@ -4,7 +4,7 @@
  * This runs BEFORE any other server logic
  */
 
-import mysql from "mysql2/promise";
+import postgres from "postgres";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -29,7 +29,7 @@ export async function initializeDatabaseSchema(attempt: number = 1): Promise<boo
   try {
     console.log(`[DB Init] Initializing database schema (attempt ${attempt}/${MAX_RETRIES})...`);
     
-    const connection = await mysql.createConnection(DATABASE_URL);
+    const sql = postgres(DATABASE_URL);
     console.log("[DB Init] Connected to database");
 
     // Step 1: Create tables
@@ -37,12 +37,12 @@ export async function initializeDatabaseSchema(attempt: number = 1): Promise<boo
     
     if (!fs.existsSync(sqlPath)) {
       console.error(`[DB Init] SQL file not found at ${sqlPath}`);
-      await connection.end();
+      await sql.end();
       return false;
     }
 
-    const sql = fs.readFileSync(sqlPath, "utf8");
-    const statements = sql.split(";").filter((s: string) => s.trim());
+    const sqlContent = fs.readFileSync(sqlPath, "utf8");
+    const statements = sqlContent.split(";").filter((s: string) => s.trim());
 
     console.log(`[DB Init] Found ${statements.length} SQL statements`);
 
@@ -54,12 +54,16 @@ export async function initializeDatabaseSchema(attempt: number = 1): Promise<boo
       const statement = statements[i];
       if (statement.trim()) {
         try {
-          await connection.execute(statement);
+          await sql.unsafe(statement);
           successCount++;
         } catch (error: any) {
+          // PostgreSQL error codes:
+          // 42P07 = duplicate_table (table already exists)
+          // 42710 = duplicate_object (enum type already exists)
           if (
             error.message?.includes("already exists") ||
-            error.code === "ER_TABLE_EXISTS_ERROR"
+            error.code === "42P07" ||
+            error.code === "42710"
           ) {
             skipCount++;
           } else {
@@ -91,7 +95,7 @@ export async function initializeDatabaseSchema(attempt: number = 1): Promise<boo
         const statement = migrationStatements[i];
         if (statement.trim()) {
           try {
-            await connection.execute(statement);
+            await sql.unsafe(statement);
             migrationSuccess++;
           } catch (error: any) {
             console.warn(`[DB Init] Migration warning:`, error.message);
@@ -105,7 +109,7 @@ export async function initializeDatabaseSchema(attempt: number = 1): Promise<boo
       );
     }
 
-    await connection.end();
+    await sql.end();
 
     console.log(`[DB Init] ✅ Database initialization complete!`);
 

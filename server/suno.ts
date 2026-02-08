@@ -24,6 +24,9 @@ export interface SunoGenerateResponse {
 
 export interface LyricsGenerateRequest {
   prompt: string;
+  style?: string;
+  vocalGender?: string;
+  weirdnessConstraint?: number;
   callBackUrl: string;
 }
 
@@ -380,35 +383,65 @@ export async function generateLyricsWithSuno(
   }
 
   try {
-    // Build a detailed prompt for lyrics generation
-    const lang = language || "Português Brasileiro";
-    let prompt = `Crie uma letra de música em ${lang} para:\n\n`;
-    prompt += `Homenageado(s): ${names}\n`;
-    if (occasion) prompt += `Ocasião: ${occasion}\n`;
-    if (mood) prompt += `Clima/Emoção: ${mood}\n`;
-    prompt += `Estilo Musical: ${style}\n\n`;
-    prompt += `História/Contexto:\n${story}\n\n`;
-    prompt += `INSTRUÇÕES:\n`;
-    prompt += `- A letra DEVE ser 100% em ${lang}\n`;
-    prompt += `- Incluir estrutura: [Verse], [Pre-Chorus], [Chorus], [Bridge]\n`;
-    prompt += `- Rimas naturais e bem pensadas\n`;
-    prompt += `- Mensagem emocional e memorável\n`;
-    prompt += `- Duração: 2-3 minutos de música`;
-
-    // Limit to 200 words as per API docs
-    const words = prompt.split(/\s+/);
-    if (words.length > 200) {
-      prompt = words.slice(0, 195).join(' ') + '...';
+    // PROMPT: APENAS contexto, história, ocasião, sentimento, detalhes (máx 200 caracteres)
+    let promptParts: string[] = [];
+    
+    // Nome do homenageado
+    if (names) {
+      promptParts.push(`Para ${names}`);
     }
-
+    
+    // Ocasião/contexto emocional
+    if (occasion) {
+      promptParts.push(occasion);
+    }
+    
+    // Humor/sentimento
+    if (mood) {
+      promptParts.push(`Sentimento: ${mood}`);
+    }
+    
+    // História (resumida para caber)
+    if (story) {
+      // Pegar apenas os primeiros 100 caracteres da história
+      const storyShort = story.length > 100 ? story.substring(0, 97) + "..." : story;
+      promptParts.push(storyShort);
+    }
+    
+    let prompt = promptParts.join(". ");
+    
+    // Garantir máximo de 200 caracteres
+    if (prompt.length > 200) {
+      prompt = prompt.substring(0, 197) + "...";
+    }
+    
+    // STYLE: estilo musical, ritmo, língua português BR, ocasião
+    const lang = language || "Português do Brasil";
+    let styleString = `${style}, em ${lang}`;
+    if (occasion) {
+      styleString += `, música de ${occasion}`;
+    }
+    styleString += ", ritmo envolvente, melodia memorável";
+    
+    // Determinar gênero vocal (padrão: masculino, mas pode ser inferido do contexto)
+    // Por enquanto, usar masculino como padrão
+    const vocalGender = "male";
+    
     const payload: LyricsGenerateRequest = {
       prompt: prompt,
+      style: styleString,
+      vocalGender: vocalGender,
+      weirdnessConstraint: 0.45,
       callBackUrl: callbackUrl
     };
 
-    console.log("[Suno Lyrics] Sending request to generate lyrics:", {
+    console.log("[Suno Lyrics] Request payload:", {
       jobId,
       promptLength: prompt.length,
+      prompt: prompt,
+      style: styleString,
+      vocalGender: vocalGender,
+      weirdnessConstraint: 0.45,
       callbackUrl
     });
 

@@ -109,6 +109,28 @@ export async function initializeDatabaseSchema(attempt: number = 1): Promise<boo
       );
     }
 
+    // Step 3: Run inline migrations (fallback for columns that might be missing)
+    console.log("[DB Init] Running inline migrations...");
+    
+    try {
+      // Add lyricsTaskId column if it doesn't exist
+      await sql`
+        DO $$
+        BEGIN
+          IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns 
+            WHERE table_name = 'jobs' AND column_name = 'lyricsTaskId'
+          ) THEN
+            ALTER TABLE jobs ADD COLUMN "lyricsTaskId" varchar(128);
+            RAISE NOTICE 'Added lyricsTaskId column';
+          END IF;
+        END $$
+      `;
+      console.log("[DB Init] ✅ Migration: lyricsTaskId column verified");
+    } catch (error: any) {
+      console.warn("[DB Init] Inline migration warning:", error.message);
+    }
+
     await sql.end();
 
     console.log(`[DB Init] ✅ Database initialization complete!`);

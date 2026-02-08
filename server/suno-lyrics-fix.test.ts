@@ -146,9 +146,12 @@ describe("Suno Lyrics API Fix", () => {
       "http://test.com/callback"
     );
 
-    // Story should be truncated to fit in 100 chars
+    // Story should be truncated to fit in 100 chars (97 + "..." = 100)
     const storyInPrompt = capturedPayload.prompt.split(". ").find((part: string) => part.includes("A"));
-    expect(storyInPrompt.length).toBeLessThanOrEqual(103); // 100 + "..."
+    expect(storyInPrompt).toBeDefined();
+    if (storyInPrompt) {
+      expect(storyInPrompt.length).toBeLessThanOrEqual(100);
+    }
     
     // Overall prompt should still be under 200
     expect(capturedPayload.prompt.length).toBeLessThanOrEqual(200);

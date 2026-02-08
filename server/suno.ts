@@ -384,6 +384,8 @@ export async function generateLyricsWithSuno(
 
   try {
     // PROMPT: APENAS contexto, história, ocasião, sentimento, detalhes (máx 200 caracteres)
+    const MAX_PROMPT_LENGTH = 200;
+    const MAX_STORY_LENGTH = 100;
     let promptParts: string[] = [];
     
     // Nome do homenageado
@@ -403,16 +405,16 @@ export async function generateLyricsWithSuno(
     
     // História (resumida para caber)
     if (story) {
-      // Pegar apenas os primeiros 100 caracteres da história
-      const storyShort = story.length > 100 ? story.substring(0, 97) + "..." : story;
+      // Pegar apenas os primeiros 100 caracteres da história (97 + "..." = 100)
+      const storyShort = story.length >= MAX_STORY_LENGTH ? story.substring(0, MAX_STORY_LENGTH - 3) + "..." : story;
       promptParts.push(storyShort);
     }
     
     let prompt = promptParts.join(". ");
     
-    // Garantir máximo de 200 caracteres
-    if (prompt.length > 200) {
-      prompt = prompt.substring(0, 197) + "...";
+    // Garantir máximo de 200 caracteres (197 + "..." = 200)
+    if (prompt.length >= MAX_PROMPT_LENGTH) {
+      prompt = prompt.substring(0, MAX_PROMPT_LENGTH - 3) + "...";
     }
     
     // STYLE: estilo musical, ritmo, língua português BR, ocasião
@@ -423,7 +425,7 @@ export async function generateLyricsWithSuno(
     }
     styleString += ", ritmo envolvente, melodia memorável";
     
-    // Determinar gênero vocal (padrão: masculino, mas pode ser inferido do contexto)
+    // TODO: Determinar gênero vocal baseado no contexto (detectar pronomes ou preferência do usuário)
     // Por enquanto, usar masculino como padrão
     const vocalGender = "male";
     

@@ -233,53 +233,96 @@ export async function webhookTest(req: Request, res: Response) {
 /**
  * Handle lyrics generation callback from Suno API
  * When lyrics are ready, trigger music generation with the actual lyrics
+ * 
+ * Expected callback format:
+ * {
+ *   "code": 200,
+ *   "msg": "All generated successfully.",
+ *   "data": {
+ *     "callbackType": "complete",
+ *     "taskId": "11dc****8b0f",
+ *     "data": [
+ *       { "text": "...", "title": "...", "status": "complete" }
+ *     ]
+ *   }
+ * }
  */
 export async function handleLyricsCallback(req: Request, res: Response) {
   try {
-    const { code, msg, data } = req.body;
+    const body = req.body;
+    
+    // Log raw payload for debugging
+    console.log("[Webhook Lyrics] Raw payload received:", JSON.stringify(body, null, 2));
+    
+    const { code, msg, data } = body;
 
-    console.log("[Webhook Lyrics] Received callback:", {
+    // Validate basic structure
+    if (!data || typeof data !== "object") {
+      console.error("[Webhook Lyrics] Invalid payload - missing data object");
+      return res.status(200).json({ status: "received", error: "Invalid payload" });
+    }
+
+    // Extract taskId (handle both camelCase and snake_case)
+    const taskId = data.taskId || data.task_id;
+    const callbackType = data.callbackType || data.callback_type;
+    const lyricsData = data.data;
+
+    console.log("[Webhook Lyrics] Parsed callback:", {
       code,
       msg,
-      callbackType: data?.callbackType,
-      taskId: data?.taskId,
-      lyricsCount: Array.isArray(data?.data) ? data.data.length : 0
+      callbackType,
+      taskId,
+      lyricsCount: Array.isArray(lyricsData) ? lyricsData.length : 0
     });
 
-    if (!data || typeof data !== "object") {
-      console.error("[Webhook Lyrics] Invalid payload");
-      return res.status(200).json({ success: false, error: "Invalid payload" });
+    // Validate taskId before DB query
+    if (!taskId) {
+      console.error("[Webhook Lyrics] Missing taskId in callback");
+      return res.status(200).json({ status: "received", error: "Missing taskId" });
     }
 
-    const { callbackType, taskId, data: lyricsData } = data;
-
-    // Handle errors
+    // Handle errors from Suno
     if (code !== 200 || callbackType === "error") {
-      console.error("[Webhook Lyrics] Error from Suno:", { code, msg });
+      console.error("[Webhook Lyrics] Lyrics generation failed:", { code, msg, callbackType });
       
-      // Fallback: generate music with original prompt
-      const job = await getJobByLyricsTaskId(taskId);
-      if (job) {
-        console.log("[Webhook Lyrics] Falling back to direct music generation");
-        await handleLyricsFallback(job.id);
+      try {
+        const job = await getJobByLyricsTaskId(taskId);
+        if (job) {
+          console.log("[Webhook Lyrics] Falling back to direct music generation for job:", job.id);
+          await handleLyricsFallback(job.id);
+        }
+      } catch (fallbackError) {
+        console.error("[Webhook Lyrics] Fallback failed:", fallbackError);
       }
-      return res.status(200).json({ success: false, error: msg });
+      
+      return res.status(200).json({ status: "received", error: msg || "Generation failed" });
     }
 
-    // Handle success - lyrics generated!
+    // Handle successful lyrics generation
     if (callbackType === "complete" && Array.isArray(lyricsData) && lyricsData.length > 0) {
+      console.log("[Webhook Lyrics] Processing complete callback with", lyricsData.length, "lyrics variants");
+      
+      // Find job by lyricsTaskId
       const job = await getJobByLyricsTaskId(taskId);
       if (!job) {
-        console.error("[Webhook Lyrics] Job not found for taskId:", taskId);
-        return res.status(200).json({ success: false, error: "Job not found" });
+        console.error("[Webhook Lyrics] Job not found for lyricsTaskId:", taskId);
+        return res.status(200).json({ status: "received", error: "Job not found" });
       }
 
-      // Get the first successful lyrics
+      console.log("[Webhook Lyrics] Found job:", job.id);
+
+      // Find first successful lyrics
       const successfulLyrics = lyricsData.find((l: any) => l.status === "complete");
       if (!successfulLyrics) {
-        console.error("[Webhook Lyrics] No successful lyrics in callback");
+        console.error("[Webhook Lyrics] No successful lyrics in response");
+        
+        // Log all variants for debugging
+        lyricsData.forEach((l: any, i: number) => {
+          console.log(`[Webhook Lyrics] Variant ${i + 1}: status=${l.status}, error=${l.errorMessage || 'none'}`);
+        });
+        
         await handleLyricsFallback(job.id);
-        return res.status(200).json({ success: false, error: "No lyrics generated" });
+        return res.status(200).json({ status: "received", error: "No successful lyrics" });
       }
 
       const lyrics = successfulLyrics.text;
@@ -287,55 +330,88 @@ export async function handleLyricsCallback(req: Request, res: Response) {
       
       console.log("[Webhook Lyrics] ✅ Lyrics generated successfully:", {
         jobId: job.id,
-        lyricsLength: lyrics.length,
         title: lyricsTitle,
-        preview: lyrics.substring(0, 100) + "..."
+        lyricsLength: lyrics.length,
+        preview: lyrics.substring(0, 150).replace(/\n/g, " ") + "..."
       });
 
-      // Update job status to GENERATING_MUSIC
+      // Update job status
       await updateJobStatus(job.id, "GENERATING_MUSIC");
+      console.log("[Webhook Lyrics] Job status updated to GENERATING_MUSIC");
 
-      // Get lead info for music generation
+      // Get lead info
       const lead = await getLeadByJobId(job.id);
       if (!lead) {
         console.error("[Webhook Lyrics] Lead not found for job:", job.id);
-        return res.status(200).json({ success: false, error: "Lead not found" });
+        return res.status(200).json({ status: "received", error: "Lead not found" });
       }
 
-      // Now generate music with the ACTUAL LYRICS
-      const appUrl = process.env.APP_URL || (process.env.NODE_ENV === "production" 
-        ? "https://seu-verso-mvp-v2.onrender.com" 
-        : "http://localhost:3000");
+      // Trigger music generation with ACTUAL LYRICS
+      const appUrl = process.env.APP_URL || "https://seu-verso-mvp-v2.onrender.com";
       const musicCallbackUrl = `${appUrl}/api/webhook/suno`;
       
-      console.log("[Webhook Lyrics] Triggering music generation with lyrics...");
+      console.log("[Webhook Lyrics] 🎵 Triggering music generation with lyrics:", {
+        jobId: job.id,
+        style: lead.style,
+        name: lead.name,
+        lyricsPreview: lyrics.substring(0, 100) + "..."
+      });
       
-      await generateMusicWithLyrics(
+      const musicTaskId = await generateMusicWithLyrics(
         job.id,
-        lyrics,           // The actual generated lyrics!
+        lyrics,
         lead.style,
         lead.name,
         musicCallbackUrl
       );
 
-      return res.status(200).json({ success: true, message: "Lyrics received, generating music" });
+      console.log("[Webhook Lyrics] ✅ Music generation triggered:", { musicTaskId });
+
+      return res.status(200).json({ 
+        status: "received", 
+        message: "Lyrics processed, music generation started",
+        musicTaskId 
+      });
     }
 
-    return res.status(200).json({ success: true });
-  } catch (error) {
-    console.error("[Webhook Lyrics] Error:", error);
-    return res.status(200).json({ success: false, error: "Unexpected error" });
+    // Handle intermediate callbacks (should not happen for lyrics, but be safe)
+    console.log("[Webhook Lyrics] Non-complete callback type:", callbackType);
+    return res.status(200).json({ status: "received" });
+    
+  } catch (error: any) {
+    console.error("[Webhook Lyrics] Unexpected error:", error.message || error);
+    console.error("[Webhook Lyrics] Stack:", error.stack);
+    
+    // Always return 200 to prevent Suno from retrying
+    return res.status(200).json({ status: "received", error: "Internal error" });
   }
 }
 
+/**
+ * Fallback function when lyrics generation fails
+ * Generates music directly with the original prompt
+ */
 async function handleLyricsFallback(jobId: string) {
-  // Fallback to direct music generation without lyrics API
-  const lead = await getLeadByJobId(jobId);
-  if (lead) {
+  console.log("[Webhook Lyrics] Starting fallback for job:", jobId);
+  
+  try {
+    const lead = await getLeadByJobId(jobId);
+    if (!lead) {
+      console.error("[Webhook Lyrics] Fallback failed - lead not found:", jobId);
+      return;
+    }
+
     await updateJobStatus(jobId, "GENERATING_MUSIC");
-    const appUrl = process.env.APP_URL || (process.env.NODE_ENV === "production" 
-      ? "https://seu-verso-mvp-v2.onrender.com" 
-      : "http://localhost:3000");
+    
+    const appUrl = process.env.APP_URL || "https://seu-verso-mvp-v2.onrender.com";
+    const callbackUrl = `${appUrl}/api/webhook/suno`;
+    
+    console.log("[Webhook Lyrics] Fallback - generating music directly:", {
+      jobId,
+      style: lead.style,
+      name: lead.name
+    });
+    
     await generateMusicWithSuno(
       jobId,
       lead.story,
@@ -344,7 +420,12 @@ async function handleLyricsFallback(jobId: string) {
       lead.occasion || undefined,
       lead.mood || undefined,
       lead.language || undefined,
-      `${appUrl}/api/webhook/suno`
+      callbackUrl
     );
+    
+    console.log("[Webhook Lyrics] Fallback - music generation triggered");
+  } catch (error: any) {
+    console.error("[Webhook Lyrics] Fallback error:", error.message || error);
+    await updateJobStatus(jobId, "FAILED");
   }
 }

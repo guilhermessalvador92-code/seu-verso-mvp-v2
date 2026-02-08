@@ -71,7 +71,7 @@ async function startServer() {
         "img-src 'self' data: https:",
         "font-src 'self' data:",
         "media-src 'self' https://musicfile.api.box",
-        "connect-src 'self' https://musicfile.api.box https://generativelanguage.googleapis.com https://api.sunoapi.org",
+        "connect-src 'self' https://musicfile.api.box https://generativelanguage.googleapis.com https://api.sunoapi.org https://lab.seuverso.com.br https://seuverso.com.br",
         "frame-ancestors 'none'",
         "base-uri 'self'",
         "form-action 'self'",

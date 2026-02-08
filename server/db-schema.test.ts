@@ -7,14 +7,13 @@ describe("Database Schema", () => {
       const jobsSchema = jobs;
       expect(jobsSchema).toBeDefined();
       
-      // Check that the schema has the lyricsTaskId field
-      const columns = Object.keys(jobsSchema);
-      expect(columns).toContain("id");
-      expect(columns).toContain("status");
-      expect(columns).toContain("sunoTaskId");
-      expect(columns).toContain("lyricsTaskId");
-      expect(columns).toContain("createdAt");
-      expect(columns).toContain("updatedAt");
+      // Check that the schema has the lyricsTaskId field by accessing it directly
+      expect(jobsSchema.lyricsTaskId).toBeDefined();
+      expect(jobsSchema.id).toBeDefined();
+      expect(jobsSchema.status).toBeDefined();
+      expect(jobsSchema.sunoTaskId).toBeDefined();
+      expect(jobsSchema.createdAt).toBeDefined();
+      expect(jobsSchema.updatedAt).toBeDefined();
     });
     
     it("should allow lyricsTaskId to be optional (nullable)", () => {

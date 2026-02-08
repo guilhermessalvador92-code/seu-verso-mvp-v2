@@ -30,5 +30,9 @@ EXCEPTION
     NULL; -- Constraint doesn't exist, that's fine
 END $$;
 
+-- Add the new CHECK constraint with all statuses
+ALTER TABLE jobs ADD CONSTRAINT jobs_status_check 
+  CHECK (status IN ('QUEUED', 'GENERATING_LYRICS', 'GENERATING_MUSIC', 'PROCESSING', 'DONE', 'FAILED'));
+
 -- Verify migration
 SELECT 'Migration complete' as status;

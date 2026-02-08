@@ -20,9 +20,13 @@ CREATE TABLE IF NOT EXISTS jobs (
   id varchar(64) PRIMARY KEY,
   status varchar(20) NOT NULL DEFAULT 'QUEUED' CHECK (status IN ('QUEUED', 'PROCESSING', 'DONE', 'FAILED')),
   "sunoTaskId" varchar(128),
+  "lyricsTaskId" varchar(128),
   "createdAt" timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updatedAt" timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Migration: Add lyricsTaskId column to jobs table (for lyrics generation flow)
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS "lyricsTaskId" VARCHAR(128);
 
 -- Create songs table
 CREATE TABLE IF NOT EXISTS songs (

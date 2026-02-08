@@ -109,6 +109,17 @@ export async function initializeDatabaseSchema(attempt: number = 1): Promise<boo
       );
     }
 
+    // Migration: Add lyricsTaskId column to jobs table
+    try {
+      await sql`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS "lyricsTaskId" VARCHAR(128)`;
+      console.log("[DB Init] ✅ Migration: lyricsTaskId column ready");
+    } catch (error: any) {
+      // Column might already exist, that's OK
+      if (!error.message?.includes('already exists')) {
+        console.warn("[DB Init] Migration lyricsTaskId:", error.message);
+      }
+    }
+
     await sql.end();
 
     console.log(`[DB Init] ✅ Database initialization complete!`);

@@ -57,9 +57,13 @@ export async function initializeDatabaseSchema(attempt: number = 1): Promise<boo
           await sql.unsafe(statement);
           successCount++;
         } catch (error: any) {
+          // PostgreSQL error codes:
+          // 42P07 = duplicate_table (table already exists)
+          // 42710 = duplicate_object (enum type already exists)
           if (
             error.message?.includes("already exists") ||
-            error.code === "42P07"
+            error.code === "42P07" ||
+            error.code === "42710"
           ) {
             skipCount++;
           } else {

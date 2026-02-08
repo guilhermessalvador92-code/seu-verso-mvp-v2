@@ -51,9 +51,10 @@ async function initializeDatabase(attempt = 1) {
           await sql.unsafe(statement);
           successCount++;
         } catch (error) {
-          // Ignorar erros de tabelas já existentes
-          if (error.message?.includes('already exists') || error.code === '42P07') {
-            console.log(`[Init DB] Table already exists, skipping...`);
+          // Ignorar erros de tabelas/tipos já existentes
+          // PostgreSQL error codes: 42P07 = duplicate_table, 42710 = duplicate_object
+          if (error.message?.includes('already exists') || error.code === '42P07' || error.code === '42710') {
+            console.log(`[Init DB] Table/Type already exists, skipping...`);
             successCount++;
           } else {
             console.error(`[Init DB] Error executing statement ${i + 1}:`, error.message);

@@ -1,8 +1,27 @@
--- Create enum types
-CREATE TYPE role AS ENUM ('user', 'admin');
-CREATE TYPE status AS ENUM ('QUEUED', 'PROCESSING', 'DONE', 'FAILED');
-CREATE TYPE email_type AS ENUM ('ORDER_CONFIRMATION', 'MUSIC_READY', 'NOTIFICATION');
-CREATE TYPE email_status AS ENUM ('PENDING', 'SENT', 'FAILED');
+-- Create enum types (PostgreSQL doesn't support IF NOT EXISTS for types, using error handling in init script)
+DO $$ BEGIN
+  CREATE TYPE role AS ENUM ('user', 'admin');
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE status AS ENUM ('QUEUED', 'PROCESSING', 'DONE', 'FAILED');
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE email_type AS ENUM ('ORDER_CONFIRMATION', 'MUSIC_READY', 'NOTIFICATION');
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE email_status AS ENUM ('PENDING', 'SENT', 'FAILED');
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
 
 -- Create users table
 CREATE TABLE IF NOT EXISTS users (

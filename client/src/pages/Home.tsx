@@ -5,7 +5,7 @@ import { useLocation } from "wouter";
 import { useState } from "react";
 import { isLabEnvironment } from "@/lib/environment";
 import ProductionLayout from "@/components/ProductionLayout";
-import LabLayout from "@/components/LabLayout";
+import LabLayout from "@/components/lab/LabLayout";
 
 export default function Home() {
   const Layout = isLabEnvironment() ? LabLayout : ProductionLayout;

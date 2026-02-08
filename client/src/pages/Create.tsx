@@ -21,7 +21,7 @@ import { Loader2, MessageCircle } from "lucide-react";
 import { MUSIC_STYLES, MOODS, LANGUAGES, OCCASIONS } from "@shared/types";
 import { isLabEnvironment } from "@/lib/environment";
 import ProductionLayout from "@/components/ProductionLayout";
-import LabLayout from "@/components/LabLayout";
+import LabLayout from "@/components/lab/LabLayout";
 
 const createJobSchema = z.object({
   name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),

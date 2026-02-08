@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
 import { isLabEnvironment } from "@/lib/environment";
 import ProductionLayout from "@/components/ProductionLayout";
-import LabLayout from "@/components/LabLayout";
+import LabLayout from "@/components/lab/LabLayout";
 import PlayerProduction from "@/components/PlayerProduction";
-import PlayerLab from "@/components/PlayerLab";
-import PreGenerationFeedback from "@/components/PreGenerationFeedback";
+import PlayerLab from "@/components/lab/PlayerLab";
+import PreGenerationFeedback from "@/components/lab/PreGenerationFeedback";
 
 interface Song {
   title: string;

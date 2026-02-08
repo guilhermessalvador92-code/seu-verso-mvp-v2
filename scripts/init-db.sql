@@ -18,8 +18,9 @@ CREATE TABLE IF NOT EXISTS users (
 -- Create jobs table
 CREATE TABLE IF NOT EXISTS jobs (
   id varchar(64) PRIMARY KEY,
-  status varchar(20) NOT NULL DEFAULT 'QUEUED' CHECK (status IN ('QUEUED', 'PROCESSING', 'DONE', 'FAILED')),
+  status varchar(20) NOT NULL DEFAULT 'QUEUED' CHECK (status IN ('QUEUED', 'GENERATING_LYRICS', 'GENERATING_MUSIC', 'PROCESSING', 'DONE', 'FAILED')),
   "sunoTaskId" varchar(128),
+  "lyricsTaskId" varchar(128),
   "createdAt" timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updatedAt" timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

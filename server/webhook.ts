@@ -303,7 +303,9 @@ export async function handleLyricsCallback(req: Request, res: Response) {
       }
 
       // Now generate music with the ACTUAL LYRICS
-      const appUrl = process.env.APP_URL || "https://seu-verso-mvp-v2.onrender.com";
+      const appUrl = process.env.APP_URL || (process.env.NODE_ENV === "production" 
+        ? "https://seu-verso-mvp-v2.onrender.com" 
+        : "http://localhost:3000");
       const musicCallbackUrl = `${appUrl}/api/webhook/suno`;
       
       console.log("[Webhook Lyrics] Triggering music generation with lyrics...");
@@ -331,7 +333,9 @@ async function handleLyricsFallback(jobId: string) {
   const lead = await getLeadByJobId(jobId);
   if (lead) {
     await updateJobStatus(jobId, "GENERATING_MUSIC");
-    const appUrl = process.env.APP_URL || "https://seu-verso-mvp-v2.onrender.com";
+    const appUrl = process.env.APP_URL || (process.env.NODE_ENV === "production" 
+      ? "https://seu-verso-mvp-v2.onrender.com" 
+      : "http://localhost:3000");
     await generateMusicWithSuno(
       jobId,
       lead.story,

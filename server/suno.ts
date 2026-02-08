@@ -363,6 +363,12 @@ function buildFallbackPrompt(
   return prompt;
 }
 
+// Suno Lyrics API constraints
+const MAX_LYRICS_PROMPT_LENGTH = 200; // API hard limit
+const STORY_TRUNCATE_LENGTH = 80; // Reserve space for other prompt parts
+const TRUNCATION_SUFFIX = "...";
+const TRUNCATION_OFFSET = MAX_LYRICS_PROMPT_LENGTH - TRUNCATION_SUFFIX.length;
+
 /**
  * Generate lyrics using Suno API
  * The API only accepts prompt (max 200 chars) and callBackUrl
@@ -417,10 +423,11 @@ export async function generateLyricsWithSuno(
       promptParts.push(style);
     }
     
-    // Story context (abbreviated)
+    // Story context (abbreviated to fit within budget)
     if (story) {
-      // Take first ~80 chars of story
-      const storyShort = story.length > 80 ? story.substring(0, 77) + "..." : story;
+      const storyShort = story.length > STORY_TRUNCATE_LENGTH 
+        ? story.substring(0, STORY_TRUNCATE_LENGTH - TRUNCATION_SUFFIX.length) + TRUNCATION_SUFFIX 
+        : story;
       promptParts.push(storyShort);
     }
     
@@ -430,8 +437,8 @@ export async function generateLyricsWithSuno(
     let prompt = promptParts.join(". ");
     
     // STRICT: Maximum 200 characters
-    if (prompt.length > 200) {
-      prompt = prompt.substring(0, 197) + "...";
+    if (prompt.length > MAX_LYRICS_PROMPT_LENGTH) {
+      prompt = prompt.substring(0, TRUNCATION_OFFSET) + TRUNCATION_SUFFIX;
     }
     
     // Simple payload - ONLY prompt and callBackUrl

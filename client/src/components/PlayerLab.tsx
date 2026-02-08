@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, Lock, Unlock } from "lucide-react";
 import { useLocation } from "wouter";
+import { useState } from "react";
 
 interface Song {
   title: string;
@@ -19,6 +20,7 @@ interface PlayerLabProps {
  */
 export default function PlayerLab({ song }: PlayerLabProps) {
   const [, setLocation] = useLocation();
+  const [isLocked, setIsLocked] = useState(true);
 
   return (
     <div className="space-y-6">
@@ -27,19 +29,40 @@ export default function PlayerLab({ song }: PlayerLabProps) {
         <h3 className="text-lg font-semibold text-slate-900 mb-2">{song.title}</h3>
       </div>
 
-      {/* Audio Player */}
-      <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-        <audio 
-          controls 
-          className="w-full" 
-          preload="auto"
-          controlsList="nodownload"
-        >
-          <source src={song.audioUrl} type="audio/mpeg" />
-          <source src={song.audioUrl} type="audio/mp4" />
-          <source src={song.audioUrl} type="audio/wav" />
-          Seu navegador não suporta o elemento de áudio.
-        </audio>
+      {/* Audio Player with Overlay */}
+      <div className="relative">
+        <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+          <audio 
+            controls 
+            className="w-full" 
+            preload="auto"
+            controlsList="nodownload"
+          >
+            <source src={song.audioUrl} type="audio/mpeg" />
+            <source src={song.audioUrl} type="audio/mp4" />
+            <source src={song.audioUrl} type="audio/wav" />
+            Seu navegador não suporta o elemento de áudio.
+          </audio>
+        </div>
+
+        {/* Overlay LAB */}
+        {isLocked && (
+          <div className="absolute inset-0 bg-white/80 backdrop-blur-[2px] rounded-lg flex flex-col items-center justify-center z-10 border border-purple-200 shadow-inner">
+            <div className="flex items-center gap-2 mb-3 text-purple-700">
+              <Lock className="w-5 h-5" />
+              <span className="font-bold uppercase tracking-wider text-sm">Feedback em breve</span>
+            </div>
+            <Button 
+              size="sm" 
+              variant="outline"
+              className="bg-white hover:bg-purple-50 border-purple-300 text-purple-700 shadow-sm"
+              onClick={() => setIsLocked(false)}
+            >
+              <Unlock className="w-4 h-4 mr-2" />
+              Liberar player
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Download Button */}

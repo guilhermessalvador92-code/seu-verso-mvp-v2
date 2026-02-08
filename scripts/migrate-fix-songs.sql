@@ -20,19 +20,23 @@ BEGIN
 END $$;
 
 -- Migration: Update status CHECK constraint to include new statuses
--- First drop the old constraint, then add the new one
+-- Drop the old constraint if it exists, then add the new one
+ALTER TABLE jobs DROP CONSTRAINT IF EXISTS jobs_status_check;
+
+-- Add the new CHECK constraint with all statuses (only if it doesn't exist)
 DO $$
 BEGIN
-  -- Try to drop old constraint (may not exist with this name)
-  ALTER TABLE jobs DROP CONSTRAINT IF EXISTS jobs_status_check;
-EXCEPTION
-  WHEN undefined_object THEN
-    NULL; -- Constraint doesn't exist, that's fine
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint 
+    WHERE conname = 'jobs_status_check' AND conrelid = 'jobs'::regclass
+  ) THEN
+    ALTER TABLE jobs ADD CONSTRAINT jobs_status_check 
+      CHECK (status IN ('QUEUED', 'GENERATING_LYRICS', 'GENERATING_MUSIC', 'PROCESSING', 'DONE', 'FAILED'));
+    RAISE NOTICE 'Added status CHECK constraint to jobs table';
+  ELSE
+    RAISE NOTICE 'Status CHECK constraint already exists in jobs table';
+  END IF;
 END $$;
-
--- Add the new CHECK constraint with all statuses
-ALTER TABLE jobs ADD CONSTRAINT jobs_status_check 
-  CHECK (status IN ('QUEUED', 'GENERATING_LYRICS', 'GENERATING_MUSIC', 'PROCESSING', 'DONE', 'FAILED'));
 
 -- Verify migration
 SELECT 'Migration complete' as status;

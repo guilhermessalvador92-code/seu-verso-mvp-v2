@@ -7,7 +7,7 @@ import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
-import { handleSunoCallback, webhookHealthCheck, webhookTest } from "../webhook";
+import { handleSunoCallback, webhookHealthCheck, webhookTest, handleLyricsCallback } from "../webhook";
 import { getJobById, getSongsByJobId } from "../db";
 import { handleFluxuzConfirmation } from "../fluxuz";
 // Email system removed - using WhatsApp only
@@ -89,6 +89,7 @@ async function startServer() {
   
   // Webhook routes for Suno API callbacks
   app.post("/api/webhook/suno", handleSunoCallback);
+  app.post("/api/webhook/lyrics", handleLyricsCallback);
   app.get("/api/webhook/health", webhookHealthCheck);
   app.post("/api/webhook/test", webhookTest);
   

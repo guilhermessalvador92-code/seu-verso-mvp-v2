@@ -5,8 +5,8 @@ import { publicProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import { nanoid } from "nanoid";
 import { createJob, getJobById, updateJobStatus, updateJobSunoTaskId, createSong, getSongsByJobId, getSongBySlug, createLead, incrementDownloadCount } from "./db";
-import { CreateJobPayload, JobStatusResponse, CallbackPayload, MUSIC_STYLES, MOODS } from "@shared/types";
-import { generateMusicWithSuno } from "./suno";
+import { CreateJobPayload, JobStatusResponse, CallbackPayload, MUSIC_STYLES, MOODS, LANGUAGES } from "@shared/types";
+import { generateMusicWithSuno, generateLyricsWithSuno } from "./suno";
 
 export const appRouter = router({
   system: systemRouter,
@@ -30,6 +30,7 @@ export const appRouter = router({
           title: z.string().min(1, "Título da música é obrigatório"),
           occasion: z.string().optional(),
           mood: z.enum(MOODS as unknown as [string, ...string[]]).optional(),
+          language: z.enum(LANGUAGES as unknown as [string, ...string[]]).optional(),
           voiceGender: z.enum(["Masculina", "Feminina"]).optional(),
           name: z.string().min(1, "Nome é obrigatório"),
           whatsapp: z.string().min(10, "WhatsApp inválido"),
@@ -64,33 +65,42 @@ export const appRouter = router({
             createdAt: new Date(),
           });
 
-          // 3. Update status to PROCESSING
-          await updateJobStatus(jobId, "PROCESSING");
+          // 3. Update status to GENERATING_LYRICS
+          await updateJobStatus(jobId, "GENERATING_LYRICS");
           
-          // 4. Generate music with Suno
-          // Gemini vai processar a história ANTES de enviar para Suno
-          console.log("[Jobs] Sending to Suno API...");
+          // 4. Generate lyrics first
+          console.log("[Jobs] Starting lyrics generation...");
           const appUrl = process.env.APP_URL || "http://localhost:3000";
-          const callbackUrl = `${appUrl}/api/webhook/suno`;
+          const lyricsCallbackUrl = `${appUrl}/api/webhook/lyrics`;
 
-          const sunoTaskId = await generateMusicWithSuno(
+          const lyricsTaskId = await generateLyricsWithSuno(
             jobId,
-            input.story,  // História do usuário (Gemini vai processar)
-            input.style,
-            input.name,   // Nome para homenagear
+            input.story,
+            input.name,
             input.occasion,
             input.mood,
-            input.language,  // Idioma da música
-            callbackUrl
+            input.style,
+            input.language,
+            lyricsCallbackUrl
           );
 
-          if (sunoTaskId) {
-            console.log("[Jobs] Suno task created:", sunoTaskId);
-            await updateJobSunoTaskId(jobId, sunoTaskId);
+          if (lyricsTaskId) {
+            console.log("[Jobs] Lyrics generation started:", lyricsTaskId);
           } else {
-            console.log("[Jobs] Suno generation failed");
-            await updateJobStatus(jobId, "FAILED");
-            throw new Error("Failed to generate music");
+            // Fallback to direct music generation with prompt
+            console.warn("[Jobs] Lyrics generation failed, falling back to direct music");
+            await updateJobStatus(jobId, "GENERATING_MUSIC");
+            const musicCallbackUrl = `${appUrl}/api/webhook/suno`;
+            await generateMusicWithSuno(
+              jobId,
+              input.story,
+              input.style,
+              input.name,
+              input.occasion,
+              input.mood,
+              input.language,
+              musicCallbackUrl
+            );
           }
 
           return {

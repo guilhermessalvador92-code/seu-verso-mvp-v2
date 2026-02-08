@@ -29,6 +29,7 @@ export const jobs = pgTable("jobs", {
   id: varchar("id", { length: 64 }).primaryKey(),
   status: varchar("status", { length: 20 }).default("QUEUED").notNull(),
   sunoTaskId: varchar("sunoTaskId", { length: 128 }),
+  lyricsTaskId: varchar("lyricsTaskId", { length: 128 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });

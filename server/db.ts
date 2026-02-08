@@ -153,6 +153,29 @@ export async function updateJobSunoTaskId(jobId: string, sunoTaskId: string): Pr
   await db.update(jobs).set({ sunoTaskId, updatedAt: new Date() }).where(eq(jobs.id, jobId));
 }
 
+export async function updateJobLyricsTaskId(jobId: string, lyricsTaskId: string): Promise<void> {
+  const db = await getDb();
+  if (!db) {
+    const idx = _mockJobs.findIndex((j) => j.id === jobId);
+    if (idx >= 0) {
+      (_mockJobs[idx] as any).lyricsTaskId = lyricsTaskId;
+      _mockJobs[idx].updatedAt = new Date();
+    }
+    return;
+  }
+  await db.update(jobs).set({ lyricsTaskId, updatedAt: new Date() }).where(eq(jobs.id, jobId));
+}
+
+export async function getJobByLyricsTaskId(lyricsTaskId: string): Promise<Job | undefined> {
+  const db = await getDb();
+  if (!db) {
+    const found = _mockJobs.find((j) => (j as any).lyricsTaskId === lyricsTaskId);
+    return found as Job | undefined;
+  }
+  const result = await db.select().from(jobs).where(eq(jobs.lyricsTaskId, lyricsTaskId)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
 export async function updateSongAudioUrl(jobId: string, audioUrl: string, title?: string): Promise<void> {
   const db = await getDb();
   if (!db) {

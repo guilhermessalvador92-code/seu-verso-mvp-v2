@@ -143,14 +143,22 @@ async function startServer() {
         return res.status(404).json({ status: "NOT_FOUND" });
       }
       const songs = await getSongsByJobId(req.params.jobId);
+      
+      // Ordenar músicas por data de criação para manter consistência (v1, v2)
+      const sortedSongs = (songs || []).sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return dateA - dateB;
+      });
+
       res.json({
         status: job.status,
-        songs: songs?.map(s => ({
+        songs: sortedSongs.map(s => ({
           title: s.title,
           audioUrl: s.audioUrl,
           lyrics: s.lyrics,
           shareSlug: s.shareSlug,
-        })) || [],
+        })),
       });
     } catch (err) {
       console.error("[Status] Error getting job", err);

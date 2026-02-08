@@ -168,8 +168,6 @@ export default function Status() {
 
   // Success state - show music player
   if (status?.status === "DONE" && status.songs && status.songs.length > 0) {
-    const song = status.songs[0];
-    
     return (
       <Layout>
         <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -185,9 +183,9 @@ export default function Status() {
             </CardHeader>
             <CardContent className="pt-8">
               {isLabEnvironment() ? (
-                <PlayerLab song={song} jobId={jobId} />
+                <PlayerLab songs={status.songs} jobId={jobId} />
               ) : (
-                <PlayerProduction song={song} />
+                <PlayerProduction song={status.songs[0]} />
               )}
             </CardContent>
           </Card>

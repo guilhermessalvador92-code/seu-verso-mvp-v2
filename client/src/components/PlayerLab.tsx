@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Download, MessageSquare, Star, Send, Loader2, CheckCircle2 } from "lucide-react";
+import { Download, MessageSquare, Star, Send, Loader2, Music2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -12,19 +12,20 @@ interface Song {
 }
 
 interface PlayerLabProps {
-  song: Song;
+  songs: Song[];
   jobId?: string;
 }
 
 /**
  * Componente de Player para o ambiente LAB (Experimentos).
  * Atualmente inclui um questionário de feedback obrigatório para liberar o áudio.
- * Permite testar novas mecânicas de engajamento e coleta de dados.
+ * Suporta a exibição de múltiplas versões da música (v1 e v2).
  */
-export default function PlayerLab({ song, jobId }: PlayerLabProps) {
+export default function PlayerLab({ songs, jobId }: PlayerLabProps) {
   const [, setLocation] = useLocation();
   const [isLocked, setIsLocked] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeSongIndex, setActiveSongIndex] = useState(0);
   
   // Form state
   const [nps, setNps] = useState<number | null>(null);
@@ -32,6 +33,7 @@ export default function PlayerLab({ song, jobId }: PlayerLabProps) {
   const [consent, setConsent] = useState(false);
 
   const storageKey = `feedback_post_done_${jobId}`;
+  const activeSong = songs[activeSongIndex] || songs[0];
 
   // Check if feedback was already given
   useEffect(() => {
@@ -90,23 +92,46 @@ export default function PlayerLab({ song, jobId }: PlayerLabProps) {
 
   return (
     <div className="space-y-6">
+      {/* Song Selection Tabs (only if multiple songs) */}
+      {songs.length > 1 && !isLocked && (
+        <div className="flex p-1 bg-slate-100 rounded-lg gap-1">
+          {songs.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setActiveSongIndex(index)}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                activeSongIndex === index 
+                  ? "bg-white text-purple-600 shadow-sm" 
+                  : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+              }`}
+            >
+              <Music2 className="w-4 h-4" />
+              Versão {index + 1}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Song Title */}
       <div>
-        <h3 className="text-lg font-semibold text-slate-900 mb-2">{song.title}</h3>
+        <h3 className="text-lg font-semibold text-slate-900 mb-2">
+          {activeSong.title} {songs.length > 1 && !isLocked && <span className="text-purple-500 text-sm ml-2">(Versão {activeSongIndex + 1})</span>}
+        </h3>
       </div>
 
       {/* Audio Player with Overlay */}
       <div className="relative">
         <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
           <audio 
+            key={activeSong.audioUrl} // Key forces re-render when switching versions
             controls 
             className="w-full" 
             preload="auto"
             controlsList="nodownload"
           >
-            <source src={song.audioUrl} type="audio/mpeg" />
-            <source src={song.audioUrl} type="audio/mp4" />
-            <source src={song.audioUrl} type="audio/wav" />
+            <source src={activeSong.audioUrl} type="audio/mpeg" />
+            <source src={activeSong.audioUrl} type="audio/mp4" />
+            <source src={activeSong.audioUrl} type="audio/wav" />
             Seu navegador não suporta o elemento de áudio.
           </audio>
         </div>
@@ -119,7 +144,7 @@ export default function PlayerLab({ song, jobId }: PlayerLabProps) {
                 <MessageSquare className="w-6 h-6" />
               </div>
               <h4 className="text-xl font-bold text-slate-900">Sua opinião é importante!</h4>
-              <p className="text-sm text-slate-600">Responda rapidinho para liberar o player</p>
+              <p className="text-sm text-slate-600">Responda rapidinho para liberar as {songs.length} versões da sua música</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6 flex-1">
@@ -204,8 +229,8 @@ export default function PlayerLab({ song, jobId }: PlayerLabProps) {
       {/* Download Button */}
       <div>
         <a
-          href={song.audioUrl}
-          download={`${song.title}.mp3`}
+          href={activeSong.audioUrl}
+          download={`${activeSong.title}.mp3`}
           className="inline-flex items-center justify-center gap-2 w-full px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors"
         >
           <Download className="w-5 h-5" />
@@ -214,11 +239,11 @@ export default function PlayerLab({ song, jobId }: PlayerLabProps) {
       </div>
 
       {/* Lyrics */}
-      {song.lyrics && (
+      {activeSong.lyrics && (
         <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
           <h4 className="font-semibold text-slate-900 mb-3">Letra</h4>
           <pre className="text-sm text-slate-700 whitespace-pre-wrap font-sans max-h-64 overflow-y-auto">
-            {song.lyrics}
+            {activeSong.lyrics}
           </pre>
         </div>
       )}
@@ -237,7 +262,7 @@ export default function PlayerLab({ song, jobId }: PlayerLabProps) {
           size="lg"
           className="flex-1 bg-purple-600 hover:bg-purple-700"
           onClick={() => {
-            const text = `Criei uma música personalizada no Seu Verso! 🎵\n${song.title}`;
+            const text = `Criei uma música personalizada no Seu Verso! 🎵\n${activeSong.title}`;
             const url = window.location.href;
             window.open(`https://wa.me/?text=${encodeURIComponent(text + "\n" + url)}`, "_blank");
           }}

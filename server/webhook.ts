@@ -82,52 +82,56 @@ export async function handleSunoCallback(req: Request, res: Response) {
         const jobId = job.id;
         const lead = await getLeadByJobId(jobId);
 
-        // Process first music track
-        const music = musicData[0];
-        const audioUrl = music.audio_url;
-        const title = music.title || `Música ${jobId}`;
-        const lyrics = music.prompt || "";
-        const shareSlug = nanoid(8);
+        // Process all music tracks (Suno usually generates 2 versions)
+        console.log(`[Webhook] Processing ${musicData.length} music tracks for job:`, jobId);
+        
+        const createdSongs = [];
+        for (const music of musicData) {
+          const audioUrl = music.audio_url;
+          const title = music.title || `Música ${jobId}`;
+          const lyrics = music.prompt || "";
+          const shareSlug = nanoid(8);
 
-        console.log("[Webhook] Creating song:", { 
-          jobId, 
-          title, 
-          audioUrl,
-          leadName: lead?.name,
-          leadWhatsapp: lead?.whatsapp,
-        });
+          console.log("[Webhook] Creating song variant:", { 
+            jobId, 
+            title, 
+            audioUrl,
+          });
 
-        // Create song record
-        await createSong({
-          id: nanoid(),
-          jobId,
-          title,
-          lyrics,
-          audioUrl,
-          imageUrl: music.image_url,
-          duration: Math.round(music.duration || 0),
-          tags: music.tags,
-          modelName: "suno-v3",
-          shareSlug,
-          createdAt: new Date(),
-        });
+          const song = await createSong({
+            id: nanoid(),
+            jobId,
+            title,
+            lyrics,
+            audioUrl,
+            imageUrl: music.image_url,
+            duration: Math.round(music.duration || 0),
+            tags: music.tags,
+            modelName: "suno-v3",
+            shareSlug,
+            createdAt: new Date(),
+          });
+          
+          if (song) createdSongs.push({ ...song, lyrics, audioUrl, title, shareSlug, imageUrl: music.image_url });
+        }
 
         // Update job status
         await updateJobStatus(jobId, "DONE");
         console.log("[Webhook] Job marked as DONE:", jobId);
 
-        // Send to Fluxuz for WhatsApp dispatch
-        if (lead) {
-          console.log("[Webhook] Sending to Fluxuz...");
+        // Send to Fluxuz for WhatsApp dispatch (using the first song as primary)
+        if (lead && createdSongs.length > 0) {
+          const primarySong = createdSongs[0];
+          console.log("[Webhook] Sending primary song to Fluxuz...");
           const fluxuzPayload = createFluxuzPayload(
             jobId,
             lead.name,
             lead.whatsapp,
-            title,
-            audioUrl,
-            shareSlug,
-            lyrics,
-            music.image_url
+            primarySong.title,
+            primarySong.audioUrl,
+            primarySong.shareSlug,
+            primarySong.lyrics,
+            primarySong.imageUrl
           );
           
           const fluxuzSent = await sendToFluxuz(fluxuzPayload);

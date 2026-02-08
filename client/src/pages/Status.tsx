@@ -8,6 +8,7 @@ import ProductionLayout from "@/components/ProductionLayout";
 import LabLayout from "@/components/LabLayout";
 import PlayerProduction from "@/components/PlayerProduction";
 import PlayerLab from "@/components/PlayerLab";
+import PreGenerationFeedback from "@/components/PreGenerationFeedback";
 
 interface Song {
   title: string;
@@ -199,6 +200,11 @@ export default function Status() {
   return (
     <Layout>
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* LAB: Pre-generation feedback questionnaire */}
+        {isLabEnvironment() && jobId && (
+          <PreGenerationFeedback jobId={jobId} onComplete={() => {}} />
+        )}
+
         <Card className="border-slate-200 shadow-lg">
           <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 border-b border-slate-200">
             <CardTitle className="text-2xl">Sua Música Está Sendo Criada</CardTitle>

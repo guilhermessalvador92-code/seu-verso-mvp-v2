@@ -110,16 +110,27 @@ async function startServer() {
     })
   );
 
-  // Tester Feedback endpoint
+  // Tester Feedback endpoints
+  app.post("/api/tester-feedback/pre", async (req, res) => {
+    try {
+      const { jobId, recipient, emotion, pricePerception } = req.body;
+      console.log("[Feedback-PRE] Received feedback for job:", jobId, { recipient, emotion, pricePerception });
+      res.json({ success: true, message: "Feedback PRE recebido com sucesso" });
+    } catch (err) {
+      console.error("[Feedback-PRE] Error saving feedback", err);
+      res.status(500).json({ success: false, error: "Erro interno ao salvar feedback" });
+    }
+  });
+
   app.post("/api/tester-feedback/post", async (req, res) => {
     try {
       const { jobId, nps, feedback, consent } = req.body;
-      console.log("[Feedback] Received feedback for job:", jobId, { nps, feedback, consent });
+      console.log("[Feedback-POST] Received feedback for job:", jobId, { nps, feedback, consent });
       
       // Por enquanto apenas logamos, mas o endpoint retorna sucesso para liberar o player no front
       res.json({ success: true, message: "Feedback recebido com sucesso" });
     } catch (err) {
-      console.error("[Feedback] Error saving feedback", err);
+      console.error("[Feedback-POST] Error saving feedback", err);
       res.status(500).json({ success: false, error: "Erro interno ao salvar feedback" });
     }
   });

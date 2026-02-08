@@ -1,27 +1,5 @@
--- Create enum types (PostgreSQL doesn't support IF NOT EXISTS for types, using error handling in init script)
-DO $$ BEGIN
-  CREATE TYPE role AS ENUM ('user', 'admin');
-EXCEPTION
-  WHEN duplicate_object THEN null;
-END $$;
-
-DO $$ BEGIN
-  CREATE TYPE status AS ENUM ('QUEUED', 'PROCESSING', 'DONE', 'FAILED');
-EXCEPTION
-  WHEN duplicate_object THEN null;
-END $$;
-
-DO $$ BEGIN
-  CREATE TYPE email_type AS ENUM ('ORDER_CONFIRMATION', 'MUSIC_READY', 'NOTIFICATION');
-EXCEPTION
-  WHEN duplicate_object THEN null;
-END $$;
-
-DO $$ BEGIN
-  CREATE TYPE email_status AS ENUM ('PENDING', 'SENT', 'FAILED');
-EXCEPTION
-  WHEN duplicate_object THEN null;
-END $$;
+-- PostgreSQL schema for seu-verso-mvp-v2
+-- Using VARCHAR for enum-like fields to avoid type creation issues
 
 -- Create users table
 CREATE TABLE IF NOT EXISTS users (
@@ -30,7 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
   name text,
   email varchar(320),
   "loginMethod" varchar(64),
-  role role NOT NULL DEFAULT 'user',
+  role varchar(20) NOT NULL DEFAULT 'user',
   "createdAt" timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updatedAt" timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "lastSignedIn" timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -39,7 +17,7 @@ CREATE TABLE IF NOT EXISTS users (
 -- Create jobs table
 CREATE TABLE IF NOT EXISTS jobs (
   id varchar(64) PRIMARY KEY,
-  status status NOT NULL DEFAULT 'QUEUED',
+  status varchar(20) NOT NULL DEFAULT 'QUEUED',
   "sunoTaskId" varchar(128),
   "createdAt" timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updatedAt" timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -74,22 +52,4 @@ CREATE TABLE IF NOT EXISTS leads (
   mood varchar(64),
   language varchar(10) NOT NULL DEFAULT 'pt-BR',
   "createdAt" timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
--- Create emailQueue table
-CREATE TABLE IF NOT EXISTS "emailQueue" (
-  id varchar(64) PRIMARY KEY,
-  "to" varchar(320) NOT NULL,
-  subject varchar(255) NOT NULL,
-  "htmlContent" text NOT NULL,
-  type email_type NOT NULL,
-  "jobId" varchar(64),
-  status email_status NOT NULL DEFAULT 'PENDING',
-  attempts integer NOT NULL DEFAULT 0,
-  "maxAttempts" integer NOT NULL DEFAULT 5,
-  "nextRetryAt" timestamp,
-  "lastError" text,
-  "sentAt" timestamp,
-  "createdAt" timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "updatedAt" timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

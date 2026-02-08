@@ -60,10 +60,13 @@ export async function initializeDatabaseSchema(attempt: number = 1): Promise<boo
           // PostgreSQL error codes:
           // 42P07 = duplicate_table (table already exists)
           // 42710 = duplicate_object (enum type already exists)
+          // 2BP01 = dependent_objects_still_exist (CASCADE will handle)
           if (
             error.message?.includes("already exists") ||
             error.code === "42P07" ||
-            error.code === "42710"
+            error.code === "42710" ||
+            error.code === "2BP01" ||
+            error.message?.includes("does not exist")
           ) {
             skipCount++;
           } else {

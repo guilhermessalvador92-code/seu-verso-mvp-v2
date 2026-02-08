@@ -1,8 +1,4 @@
-import { integer, pgEnum, pgTable, text, timestamp, varchar, serial } from "drizzle-orm/pg-core";
-
-// Define enums for PostgreSQL
-const roleEnum = pgEnum("role", ["user", "admin"]);
-const jobStatusEnum = pgEnum("status", ["QUEUED", "PROCESSING", "DONE", "FAILED"]);
+import { integer, pgTable, text, timestamp, varchar, serial } from "drizzle-orm/pg-core";
 
 /**
  * Core user table backing auth flow.
@@ -20,7 +16,7 @@ export const users = pgTable("users", {
   name: text("name"),
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
-  role: roleEnum("role").default("user").notNull(),
+  role: varchar("role", { length: 20 }).default("user").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
@@ -31,7 +27,7 @@ export type InsertUser = typeof users.$inferInsert;
 
 export const jobs = pgTable("jobs", {
   id: varchar("id", { length: 64 }).primaryKey(),
-  status: jobStatusEnum("status").default("QUEUED").notNull(),
+  status: varchar("status", { length: 20 }).default("QUEUED").notNull(),
   sunoTaskId: varchar("sunoTaskId", { length: 128 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),

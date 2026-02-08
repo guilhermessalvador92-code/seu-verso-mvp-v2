@@ -31,12 +31,18 @@ export async function sendToFluxuz(payload: FluxuzPushPayload): Promise<boolean>
 
   try {
     const body = {
-      body: `🎵 Sua música personalizada "${payload.musicTitle}" está pronta! Clique no link abaixo para ouvir:`,
+      body: `🎵 Olá ${payload.name}! Sua música "${payload.musicTitle}" está pronta!\n\n🎧 Ouça agora:\n${payload.audioUrl}`,
       number: payload.whatsapp,
       externalKey: `job_${payload.jobId}`,
-      note: {
-        body: `Lead: ${payload.name} - Música: ${payload.musicTitle}`,
-        mediaUrl: payload.audioUrl
+      data: {
+        name: payload.name,
+        whatsapp: payload.whatsapp,
+        musicTitle: payload.musicTitle,
+        audioUrl: payload.audioUrl,
+        musicUrl: payload.musicUrl,
+        shareSlug: payload.shareSlug,
+        lyrics: payload.lyrics,
+        imageUrl: payload.imageUrl || ""
       }
     };
 

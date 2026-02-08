@@ -6,8 +6,9 @@ interface LabLayoutProps {
 }
 
 /**
- * LabLayout - Duplicação controlada para experimentos.
- * Inicialmente idêntico ao ProductionLayout.
+ * Layout utilizado exclusivamente no ambiente LAB (Experimentos).
+ * Permite testar novas interfaces e fluxos sem afetar a Produção.
+ * Inicialmente idêntico ao ProductionLayout para garantir transição suave.
  */
 export default function LabLayout({ children }: LabLayoutProps) {
   return (

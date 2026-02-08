@@ -9,13 +9,7 @@ import App from "./App";
 import { getLoginUrl } from "./const";
 import "./index.css";
 
-// [LAB] Log temporário — remover após validação
-console.log(
-  "[ENV]",
-  isLabEnvironment() ? "LAB" : "PRODUCTION",
-  "| hostname:",
-  window.location.hostname,
-);
+
 
 const queryClient = new QueryClient();
 

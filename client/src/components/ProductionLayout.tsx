@@ -5,6 +5,10 @@ interface ProductionLayoutProps {
   children: React.ReactNode;
 }
 
+/**
+ * Layout padrão utilizado no ambiente de Produção.
+ * Mantém a estabilidade visual e funcional para os usuários finais.
+ */
 export default function ProductionLayout({ children }: ProductionLayoutProps) {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">

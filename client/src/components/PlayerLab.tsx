@@ -16,6 +16,11 @@ interface PlayerLabProps {
   jobId?: string;
 }
 
+/**
+ * Componente de Player para o ambiente LAB (Experimentos).
+ * Atualmente inclui um questionário de feedback obrigatório para liberar o áudio.
+ * Permite testar novas mecânicas de engajamento e coleta de dados.
+ */
 export default function PlayerLab({ song, jobId }: PlayerLabProps) {
   const [, setLocation] = useLocation();
   const [isLocked, setIsLocked] = useState(true);

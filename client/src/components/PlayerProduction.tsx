@@ -13,6 +13,10 @@ interface PlayerProductionProps {
   song: Song;
 }
 
+/**
+ * Componente de Player padrão para o ambiente de Produção.
+ * Focado em estabilidade e experiência de usuário consolidada.
+ */
 export default function PlayerProduction({ song }: PlayerProductionProps) {
   const [, setLocation] = useLocation();
 

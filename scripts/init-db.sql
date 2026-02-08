@@ -1,5 +1,6 @@
 -- PostgreSQL schema for seu-verso-mvp-v2
 -- Using VARCHAR for enum-like fields to avoid type creation issues
+-- Valid values: role (user, admin), status (QUEUED, PROCESSING, DONE, FAILED)
 
 -- Create users table
 CREATE TABLE IF NOT EXISTS users (
@@ -8,7 +9,7 @@ CREATE TABLE IF NOT EXISTS users (
   name text,
   email varchar(320),
   "loginMethod" varchar(64),
-  role varchar(20) NOT NULL DEFAULT 'user',
+  role varchar(20) NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')),
   "createdAt" timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updatedAt" timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "lastSignedIn" timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -17,7 +18,7 @@ CREATE TABLE IF NOT EXISTS users (
 -- Create jobs table
 CREATE TABLE IF NOT EXISTS jobs (
   id varchar(64) PRIMARY KEY,
-  status varchar(20) NOT NULL DEFAULT 'QUEUED',
+  status varchar(20) NOT NULL DEFAULT 'QUEUED' CHECK (status IN ('QUEUED', 'PROCESSING', 'DONE', 'FAILED')),
   "sunoTaskId" varchar(128),
   "createdAt" timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updatedAt" timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP

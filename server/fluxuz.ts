@@ -21,48 +21,46 @@ export interface FluxuzPushPayload {
  * Envia dados para Fluxuz disparar WhatsApp via API externa
  */
 export async function sendToFluxuz(payload: FluxuzPushPayload): Promise<boolean> {
-  try {
-    // API Externa Fluxuz (com token na URL)
-    const fluxuzApiUrl = process.env.FLUXUZ_API_URL;
-    
-    if (!fluxuzApiUrl) {
-      console.error("[Fluxuz] FLUXUZ_API_URL not configured");
-      return false;
-    }
+  const FLUXUZ_API_URL = process.env.FLUXUZ_API_URL;
+  const FLUXUZ_API_TOKEN = process.env.FLUXUZ_API_TOKEN;
 
-    // Formato correto da API Fluxuz (conforme documentação e teste Postman)
-    const apiPayload = {
-      message: `Olá ${payload.name}! 🎵\n\nSua música "${payload.musicTitle}" está pronta!\n\nOuça agora: ${payload.musicUrl}\n\n🎧 Link direto: ${payload.audioUrl}`,
+  if (!FLUXUZ_API_URL || !FLUXUZ_API_TOKEN) {
+    console.error("[Fluxuz] FLUXUZ_API_URL or FLUXUZ_API_TOKEN not configured");
+    return false;
+  }
+
+  try {
+    const body = {
+      body: `🎵 Sua música personalizada "${payload.musicTitle}" está pronta! Clique no link abaixo para ouvir:`,
       number: payload.whatsapp,
-      externalKey: payload.jobId, // Para rastreamento
+      externalKey: `job_${payload.jobId}`,
+      note: {
+        body: `Lead: ${payload.name} - Música: ${payload.musicTitle}`,
+        mediaUrl: payload.audioUrl
+      }
     };
 
-    console.log("[Fluxuz] Sending to:", fluxuzApiUrl);
-    console.log("[Fluxuz] Payload:", JSON.stringify(apiPayload, null, 2));
-
-    const response = await fetch(fluxuzApiUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(apiPayload),
+    console.log("[Fluxuz] Sending to WhatsApp:", {
+      number: payload.whatsapp,
+      title: payload.musicTitle,
+      audioUrl: payload.audioUrl
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("[Fluxuz] Error response:", {
-        status: response.status,
-        statusText: response.statusText,
-        body: errorText,
-      });
-      return false;
-    }
+    const response = await fetch(FLUXUZ_API_URL, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${FLUXUZ_API_TOKEN}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(body)
+    });
 
     const result = await response.json();
-    console.log("[Fluxuz] Success response:", result);
-    return true;
+    console.log("[Fluxuz] Response:", result);
+
+    return response.ok;
   } catch (error) {
-    console.error("[Fluxuz] Failed to send:", error);
+    console.error("[Fluxuz] Error sending message:", error);
     return false;
   }
 }

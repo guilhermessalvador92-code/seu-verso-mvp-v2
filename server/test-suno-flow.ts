@@ -91,8 +91,10 @@ async function testSunoFlow() {
       testPayload.prompt,
       testPayload.style,
       testPayload.title,
-      testPayload.callBackUrl,
-      "m"
+      undefined, // occasion
+      undefined, // mood
+      undefined, // language
+      testPayload.callBackUrl
     );
 
     console.log("✅ SUCESSO! Música criada:");

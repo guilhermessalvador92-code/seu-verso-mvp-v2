@@ -22,6 +22,19 @@ export interface SunoGenerateResponse {
   };
 }
 
+export interface LyricsGenerateRequest {
+  prompt: string;
+  callBackUrl: string;
+}
+
+export interface LyricsGenerateResponse {
+  code: number;
+  msg: string;
+  data?: {
+    taskId: string;
+  };
+}
+
 export interface SunoTaskDetails {
   code: number;
   msg: string;
@@ -348,6 +361,163 @@ function buildFallbackPrompt(
   }
 
   return prompt;
+}
+
+export async function generateLyricsWithSuno(
+  jobId: string,
+  story: string,
+  names: string,
+  occasion: string | undefined,
+  mood: string | undefined,
+  style: string,
+  language: string | undefined,
+  callbackUrl: string
+): Promise<string | null> {
+  const SUNO_API_KEY = process.env.SUNO_API_KEY;
+  if (!SUNO_API_KEY) {
+    console.error("[Suno Lyrics] API Key not configured");
+    return null;
+  }
+
+  try {
+    // Build a detailed prompt for lyrics generation
+    const lang = language || "Português Brasileiro";
+    let prompt = `Crie uma letra de música em ${lang} para:\n\n`;
+    prompt += `Homenageado(s): ${names}\n`;
+    if (occasion) prompt += `Ocasião: ${occasion}\n`;
+    if (mood) prompt += `Clima/Emoção: ${mood}\n`;
+    prompt += `Estilo Musical: ${style}\n\n`;
+    prompt += `História/Contexto:\n${story}\n\n`;
+    prompt += `INSTRUÇÕES:\n`;
+    prompt += `- A letra DEVE ser 100% em português brasileiro\n`;
+    prompt += `- Incluir estrutura: [Verse], [Pre-Chorus], [Chorus], [Bridge]\n`;
+    prompt += `- Rimas naturais e bem pensadas\n`;
+    prompt += `- Mensagem emocional e memorável\n`;
+    prompt += `- Duração: 2-3 minutos de música`;
+
+    // Limit to 200 words as per API docs
+    if (prompt.split(/\s+/).length > 200) {
+      const words = prompt.split(/\s+/).slice(0, 195);
+      prompt = words.join(' ') + '...';
+    }
+
+    const payload: LyricsGenerateRequest = {
+      prompt: prompt,
+      callBackUrl: callbackUrl
+    };
+
+    console.log("[Suno Lyrics] Sending request to generate lyrics:", {
+      jobId,
+      promptLength: prompt.length,
+      callbackUrl
+    });
+
+    const response = await fetch(`${SUNO_API_BASE}/api/v1/lyrics`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${SUNO_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data: LyricsGenerateResponse = await response.json();
+
+    if (data.code !== 200) {
+      console.error("[Suno Lyrics] Generation failed:", data);
+      return null;
+    }
+
+    const taskId = data.data?.taskId;
+    console.log("[Suno Lyrics] Generation started:", { taskId, jobId });
+
+    // Store lyricsTaskId in job
+    if (taskId) {
+      try {
+        const { updateJobLyricsTaskId } = await import("./db");
+        await updateJobLyricsTaskId(jobId, taskId);
+      } catch (error) {
+        console.error("[Suno Lyrics] Failed to store lyricsTaskId:", error);
+      }
+    }
+
+    return taskId || null;
+  } catch (error) {
+    console.error("[Suno Lyrics] Error:", error);
+    return null;
+  }
+}
+
+export async function generateMusicWithLyrics(
+  jobId: string,
+  lyrics: string,
+  style: string,
+  names: string,
+  callbackUrl: string
+): Promise<string | null> {
+  const SUNO_API_KEY = process.env.SUNO_API_KEY;
+  if (!SUNO_API_KEY) {
+    console.error("[Suno Music] API Key not configured");
+    return null;
+  }
+
+  try {
+    const sunoStyle = mapMusicStyle(style);
+    const title = `Música para ${names}`;
+
+    const payload: SunoGenerateRequest = {
+      customMode: true,
+      instrumental: false,
+      model: "V4_5PLUS",
+      callBackUrl: callbackUrl,
+      prompt: lyrics, // Now using actual generated lyrics!
+      style: sunoStyle,
+      title: title,
+      styleWeight: 0.8,
+      weirdnessConstraint: 0.4,
+      audioWeight: 0.7,
+    };
+
+    console.log("[Suno Music] Generating with lyrics:", {
+      jobId,
+      style: sunoStyle,
+      title,
+      lyricsPreview: lyrics.substring(0, 100)
+    });
+
+    const response = await fetch(`${SUNO_API_BASE}/api/v1/generate`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${SUNO_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data: SunoGenerateResponse = await response.json();
+
+    if (data.code !== 200) {
+      console.error("[Suno Music] Generation failed:", data);
+      return null;
+    }
+
+    const taskId = data.data?.taskId;
+    console.log("[Suno Music] Generation started:", { taskId, jobId });
+
+    if (taskId) {
+      try {
+        const { updateJobSunoTaskId } = await import("./db");
+        await updateJobSunoTaskId(jobId, taskId);
+      } catch (error) {
+        console.error("[Suno Music] Failed to store sunoTaskId:", error);
+      }
+    }
+
+    return taskId || null;
+  } catch (error) {
+    console.error("[Suno Music] Error:", error);
+    return null;
+  }
 }
 
 function mapMusicStyle(style: string): string {

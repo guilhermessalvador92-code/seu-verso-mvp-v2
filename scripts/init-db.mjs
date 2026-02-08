@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import mysql from 'mysql2/promise';
+import postgres from 'postgres';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -23,7 +23,7 @@ async function initializeDatabase(attempt = 1) {
 
   try {
     console.log(`[Init DB] Connecting to database (attempt ${attempt}/${MAX_RETRIES})...`);
-    const connection = await mysql.createConnection(DATABASE_URL);
+    const sql = postgres(DATABASE_URL);
     
     console.log('[Init DB] Connection successful!');
     console.log('[Init DB] Reading SQL schema...');
@@ -31,14 +31,14 @@ async function initializeDatabase(attempt = 1) {
     const sqlPath = path.join(__dirname, 'init-db.sql');
     if (!fs.existsSync(sqlPath)) {
       console.error(`[Init DB] SQL file not found at ${sqlPath}`);
-      await connection.end();
+      await sql.end();
       process.exit(1);
     }
     
-    const sql = fs.readFileSync(sqlPath, 'utf8');
+    const sqlContent = fs.readFileSync(sqlPath, 'utf8');
     
     // Split by semicolon and execute each statement
-    const statements = sql.split(';').filter(s => s.trim());
+    const statements = sqlContent.split(';').filter(s => s.trim());
     
     let successCount = 0;
     let errorCount = 0;
@@ -48,11 +48,11 @@ async function initializeDatabase(attempt = 1) {
       if (statement.trim()) {
         try {
           console.log(`[Init DB] Executing statement ${i + 1}/${statements.length}...`);
-          await connection.execute(statement);
+          await sql.unsafe(statement);
           successCount++;
         } catch (error) {
           // Ignorar erros de tabelas já existentes
-          if (error.message?.includes('already exists') || error.code === 'ER_TABLE_EXISTS_ERROR') {
+          if (error.message?.includes('already exists') || error.code === '42P07') {
             console.log(`[Init DB] Table already exists, skipping...`);
             successCount++;
           } else {
@@ -66,7 +66,7 @@ async function initializeDatabase(attempt = 1) {
     console.log(`[Init DB] ✅ Database initialization complete!`);
     console.log(`[Init DB] Statements executed: ${successCount}, Errors: ${errorCount}`);
     
-    await connection.end();
+    await sql.end();
     process.exit(0);
   } catch (error) {
     console.error(`[Init DB] Error (attempt ${attempt}/${MAX_RETRIES}):`, error.message);

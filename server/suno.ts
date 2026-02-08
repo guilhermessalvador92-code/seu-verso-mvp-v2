@@ -363,25 +363,6 @@ function buildFallbackPrompt(
   return prompt;
 }
 
-// Suno Lyrics API constraints
-const MAX_LYRICS_PROMPT_LENGTH = 200; // API hard limit
-const STORY_TRUNCATE_LENGTH = 80; // Reserve space for other prompt parts
-const TRUNCATION_SUFFIX = "...";
-const TRUNCATION_OFFSET = MAX_LYRICS_PROMPT_LENGTH - TRUNCATION_SUFFIX.length;
-
-/**
- * Generate lyrics using Suno API
- * The API only accepts prompt (max 200 chars) and callBackUrl
- * 
- * @param jobId - Internal job ID
- * @param story - User's story/context
- * @param names - Name of the person being honored
- * @param occasion - Optional occasion (birthday, wedding, etc)
- * @param mood - Optional mood/sentiment
- * @param style - Music style
- * @param language - Optional language
- * @param callbackUrl - URL to receive the lyrics callback
- */
 export async function generateLyricsWithSuno(
   jobId: string,
   story: string,
@@ -399,60 +380,77 @@ export async function generateLyricsWithSuno(
   }
 
   try {
-    // Build a concise prompt (MAX 200 characters)
-    // Include: context, occasion, sentiment, key details
-    let promptParts: string[] = [];
+    // ========================================
+    // PROMPT: MÁXIMO 200 CARACTERES!
+    // Apenas: nome, ocasião, sentimento, história curta
+    // ========================================
     
-    // Who is it for
-    if (names) {
-      promptParts.push(`Song for ${names}`);
+    let parts: string[] = [];
+    
+    // Nome (obrigatório, curto)
+    if (names && names.length <= 30) {
+      parts.push(`Para ${names}`);
+    } else if (names) {
+      parts.push(`Para ${names.substring(0, 25)}`);
     }
     
-    // Occasion
-    if (occasion) {
-      promptParts.push(occasion);
+    // Ocasião (curta)
+    if (occasion && occasion.length <= 20) {
+      parts.push(occasion);
+    } else if (occasion) {
+      parts.push(occasion.substring(0, 17) + "...");
     }
     
-    // Mood/sentiment
-    if (mood) {
-      promptParts.push(mood);
+    // Humor/sentimento
+    if (mood && mood.length <= 15) {
+      parts.push(mood);
     }
     
-    // Style hint
-    if (style) {
-      promptParts.push(style);
+    // Estilo musical (curto)
+    if (style && style.length <= 15) {
+      parts.push(style);
     }
     
-    // Story context (abbreviated to fit within budget)
+    // História (MUITO curta - apenas essência)
     if (story) {
-      const storyShort = story.length > STORY_TRUNCATE_LENGTH 
-        ? story.substring(0, STORY_TRUNCATE_LENGTH - TRUNCATION_SUFFIX.length) + TRUNCATION_SUFFIX 
-        : story;
-      promptParts.push(storyShort);
+      const maxStoryLength = 80;
+      const storyClean = story.replace(/\n/g, ' ').trim();
+      if (storyClean.length <= maxStoryLength) {
+        parts.push(storyClean);
+      } else {
+        parts.push(storyClean.substring(0, maxStoryLength - 3) + "...");
+      }
     }
     
-    // Language hint
-    promptParts.push("Brazilian Portuguese");
+    // Idioma
+    parts.push("pt-BR");
     
-    let prompt = promptParts.join(". ");
+    // Juntar partes
+    let prompt = parts.join(". ");
     
-    // STRICT: Maximum 200 characters
-    if (prompt.length > MAX_LYRICS_PROMPT_LENGTH) {
-      prompt = prompt.substring(0, TRUNCATION_OFFSET) + TRUNCATION_SUFFIX;
+    // GARANTIA ABSOLUTA: máximo 200 caracteres
+    if (prompt.length > 200) {
+      prompt = prompt.substring(0, 197) + "...";
     }
     
-    // Simple payload - ONLY prompt and callBackUrl
-    const payload: LyricsGenerateRequest = {
+    // Payload simples - APENAS prompt e callBackUrl
+    const payload = {
       prompt: prompt,
       callBackUrl: callbackUrl
     };
 
-    console.log("[Suno Lyrics] Generating lyrics:", {
+    console.log("[Suno Lyrics] Sending request:", {
       jobId,
       promptLength: prompt.length,
       prompt: prompt,
       callbackUrl
     });
+
+    // Validação final antes de enviar
+    if (prompt.length > 200) {
+      console.error("[Suno Lyrics] ERRO: prompt ainda maior que 200:", prompt.length);
+      return null;
+    }
 
     const response = await fetch(`${SUNO_API_BASE}/api/v1/lyrics`, {
       method: "POST",
@@ -463,9 +461,13 @@ export async function generateLyricsWithSuno(
       body: JSON.stringify(payload),
     });
 
-    const data: LyricsGenerateResponse = await response.json();
+    const data = await response.json();
 
-    console.log("[Suno Lyrics] API Response:", data);
+    console.log("[Suno Lyrics] API Response:", {
+      code: data.code,
+      msg: data.msg,
+      taskId: data.data?.taskId
+    });
 
     if (data.code !== 200) {
       console.error("[Suno Lyrics] Generation failed:", data);
@@ -473,7 +475,7 @@ export async function generateLyricsWithSuno(
     }
 
     const taskId = data.data?.taskId;
-    console.log("[Suno Lyrics] Generation started:", { taskId, jobId });
+    console.log("[Suno Lyrics] ✅ Generation started:", { taskId, jobId });
 
     // Store lyricsTaskId in job
     if (taskId) {

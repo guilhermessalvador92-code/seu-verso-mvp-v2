@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/button";
-import { Download, Lock, Unlock } from "lucide-react";
+import { Download, MessageSquare, Star, Send, Loader2, CheckCircle2 } from "lucide-react";
 import { useLocation } from "wouter";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
 
 interface Song {
   title: string;
@@ -12,15 +13,75 @@ interface Song {
 
 interface PlayerLabProps {
   song: Song;
+  jobId?: string;
 }
 
-/**
- * PlayerLab - Duplicação controlada para experimentos no player.
- * Inicialmente idêntico ao PlayerProduction.
- */
-export default function PlayerLab({ song }: PlayerLabProps) {
+export default function PlayerLab({ song, jobId }: PlayerLabProps) {
   const [, setLocation] = useLocation();
   const [isLocked, setIsLocked] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Form state
+  const [nps, setNps] = useState<number | null>(null);
+  const [feedback, setFeedback] = useState("");
+  const [consent, setConsent] = useState(false);
+
+  const storageKey = `feedback_post_done_${jobId}`;
+
+  // Check if feedback was already given
+  useEffect(() => {
+    if (jobId) {
+      const done = localStorage.getItem(storageKey);
+      if (done === "true") {
+        setIsLocked(false);
+      }
+    }
+  }, [jobId, storageKey]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (nps === null) {
+      toast.error("Por favor, selecione uma nota de 0 a 10");
+      return;
+    }
+
+    if (!consent) {
+      toast.error("Por favor, autorize o uso do feedback");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch("/api/tester-feedback/post", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jobId,
+          nps,
+          feedback,
+          consent
+        }),
+      });
+
+      if (!response.ok) throw new Error("Erro ao enviar feedback");
+
+      const data = await response.json();
+      if (data.success) {
+        toast.success("Obrigado pelo seu feedback!");
+        localStorage.setItem(storageKey, "true");
+        setIsLocked(false);
+      } else {
+        throw new Error(data.error || "Erro ao enviar feedback");
+      }
+    } catch (error) {
+      console.error("[Feedback] Submit error:", error);
+      toast.error("Não foi possível enviar o feedback. Tente novamente.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -45,22 +106,92 @@ export default function PlayerLab({ song }: PlayerLabProps) {
           </audio>
         </div>
 
-        {/* Overlay LAB */}
+        {/* Overlay LAB - Questionnaire */}
         {isLocked && (
-          <div className="absolute inset-0 bg-white/80 backdrop-blur-[2px] rounded-lg flex flex-col items-center justify-center z-10 border border-purple-200 shadow-inner">
-            <div className="flex items-center gap-2 mb-3 text-purple-700">
-              <Lock className="w-5 h-5" />
-              <span className="font-bold uppercase tracking-wider text-sm">Feedback em breve</span>
+          <div className="absolute inset-0 bg-white/95 backdrop-blur-md rounded-lg z-10 border border-purple-200 shadow-xl overflow-y-auto p-6 flex flex-col">
+            <div className="text-center mb-6">
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-purple-100 text-purple-600 mb-3">
+                <MessageSquare className="w-6 h-6" />
+              </div>
+              <h4 className="text-xl font-bold text-slate-900">Sua opinião é importante!</h4>
+              <p className="text-sm text-slate-600">Responda rapidinho para liberar o player</p>
             </div>
-            <Button 
-              size="sm" 
-              variant="outline"
-              className="bg-white hover:bg-purple-50 border-purple-300 text-purple-700 shadow-sm"
-              onClick={() => setIsLocked(false)}
-            >
-              <Unlock className="w-4 h-4 mr-2" />
-              Liberar player
-            </Button>
+
+            <form onSubmit={handleSubmit} className="space-y-6 flex-1">
+              {/* NPS Question */}
+              <div className="space-y-3">
+                <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                  <Star className="w-4 h-4 text-yellow-500" />
+                  O quanto você gostou da experiência? (0-10)
+                </label>
+                <div className="flex flex-wrap justify-between gap-1">
+                  {[...Array(11)].map((_, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setNps(i)}
+                      className={`w-8 h-8 rounded-md text-xs font-bold transition-all border ${
+                        nps === i 
+                          ? "bg-purple-600 text-white border-purple-600 scale-110 shadow-md" 
+                          : "bg-white text-slate-600 border-slate-200 hover:border-purple-400 hover:bg-purple-50"
+                      }`}
+                    >
+                      {i}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex justify-between text-[10px] text-slate-400 px-1">
+                  <span>Não gostei</span>
+                  <span>Amei!</span>
+                </div>
+              </div>
+
+              {/* Text Feedback */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700">
+                  O que podemos melhorar? (Opcional)
+                </label>
+                <textarea
+                  value={feedback}
+                  onChange={(e) => setFeedback(e.target.value)}
+                  placeholder="Sua sugestão..."
+                  className="w-full min-h-[80px] p-3 text-sm rounded-md border border-slate-200 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all resize-none"
+                />
+              </div>
+
+              {/* Consent */}
+              <div className="flex items-start gap-3">
+                <input
+                  id="consent"
+                  type="checkbox"
+                  checked={consent}
+                  onChange={(e) => setConsent(e.target.checked)}
+                  className="mt-1 w-4 h-4 text-purple-600 border-slate-300 rounded focus:ring-purple-500"
+                />
+                <label htmlFor="consent" className="text-xs text-slate-600 leading-relaxed cursor-pointer">
+                  Autorizo o uso do meu feedback e nome para fins de melhoria e divulgação do Seu Verso.
+                </label>
+              </div>
+
+              {/* Submit Button */}
+              <Button 
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full bg-purple-600 hover:bg-purple-700 text-white shadow-lg py-6 text-lg font-bold"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Enviando...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-5 h-5 mr-2" />
+                    Enviar e ouvir música
+                  </>
+                )}
+              </Button>
+            </form>
           </div>
         )}
       </div>

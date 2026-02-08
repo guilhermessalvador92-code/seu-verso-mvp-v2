@@ -110,6 +110,20 @@ async function startServer() {
     })
   );
 
+  // Tester Feedback endpoint
+  app.post("/api/tester-feedback/post", async (req, res) => {
+    try {
+      const { jobId, nps, feedback, consent } = req.body;
+      console.log("[Feedback] Received feedback for job:", jobId, { nps, feedback, consent });
+      
+      // Por enquanto apenas logamos, mas o endpoint retorna sucesso para liberar o player no front
+      res.json({ success: true, message: "Feedback recebido com sucesso" });
+    } catch (err) {
+      console.error("[Feedback] Error saving feedback", err);
+      res.status(500).json({ success: false, error: "Erro interno ao salvar feedback" });
+    }
+  });
+
   // REST status endpoint
   app.get("/api/status-simple/:jobId", async (req, res) => {
     try {

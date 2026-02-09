@@ -194,8 +194,8 @@ export default function Status() {
   return (
     <Layout>
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Pre-generation feedback questionnaire (Mandatory) */}
-        {jobId && (
+        {/* Pre-generation feedback questionnaire (Mandatory only in LAB) */}
+        {isLabEnvironment() && jobId && (
           <PreGenerationFeedback jobId={jobId} onComplete={() => {}} />
         )}
 

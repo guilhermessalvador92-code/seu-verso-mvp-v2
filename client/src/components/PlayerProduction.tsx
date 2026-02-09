@@ -3,6 +3,7 @@ import { Download, MessageSquare, Star, Send, Loader2, Music2, Unlock, Gift } fr
 import { useLocation } from "wouter";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { isLabEnvironment } from "@/lib/environment";
 
 interface Song {
   title: string;
@@ -18,11 +19,12 @@ interface PlayerProductionProps {
 
 /**
  * Componente de Player unificado para Produção.
- * Agora suporta múltiplas músicas e questionário de feedback obrigatório.
+ * Agora suporta múltiplas músicas e questionário de feedback obrigatório APENAS NO LAB.
  */
 export default function PlayerProduction({ songs, jobId }: PlayerProductionProps) {
   const [, setLocation] = useLocation();
-  const [isLocked, setIsLocked] = useState(true);
+  // Só bloqueia se for ambiente LAB
+  const [isLocked, setIsLocked] = useState(isLabEnvironment());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeSongIndex, setActiveSongIndex] = useState(0);
   
@@ -36,7 +38,7 @@ export default function PlayerProduction({ songs, jobId }: PlayerProductionProps
 
   // Check if feedback was already given
   useEffect(() => {
-    if (jobId) {
+    if (jobId && isLabEnvironment()) {
       const done = localStorage.getItem(storageKey);
       if (done === "true") {
         setIsLocked(false);
@@ -91,7 +93,7 @@ export default function PlayerProduction({ songs, jobId }: PlayerProductionProps
 
   return (
     <div className="space-y-6">
-      {/* Header de Status de Bônus */}
+      {/* Header de Status de Bônus (Apenas LAB) */}
       {isLocked && songs.length > 1 && (
         <div className="bg-purple-50 border border-purple-100 rounded-xl p-4 flex items-center gap-4 animate-pulse">
           <div className="bg-purple-600 p-2 rounded-full text-white">

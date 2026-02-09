@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { MessageSquare, Send, Loader2, X } from "lucide-react";
+import { MessageSquare, Send, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface PreGenerationFeedbackProps {
@@ -9,6 +9,10 @@ interface PreGenerationFeedbackProps {
   onComplete: () => void;
 }
 
+/**
+ * Componente de Feedback Pré-Geração.
+ * Atualizado para ser OBRIGATÓRIO (sem opção de pular ou fechar).
+ */
 export default function PreGenerationFeedback({ jobId, onComplete }: PreGenerationFeedbackProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
@@ -29,12 +33,11 @@ export default function PreGenerationFeedback({ jobId, onComplete }: PreGenerati
     }
   }, [jobId, storageKey, onComplete]);
 
-  const handleSubmit = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     
-    // Se for skip (sem evento), apenas fechamos
-    if (!e && !recipient && !emotion && !pricePerception) {
-      handleSkip();
+    if (!recipient || !emotion || !pricePerception) {
+      toast.error("Por favor, preencha todos os campos para continuar.");
       return;
     }
 
@@ -60,17 +63,13 @@ export default function PreGenerationFeedback({ jobId, onComplete }: PreGenerati
       toast.success("Obrigado! Isso nos ajuda muito.");
     } catch (error) {
       console.error("[Feedback-PRE] Submit error:", error);
-      // Mesmo com erro, deixamos o usuário seguir para não travar o fluxo
-      handleSkip();
+      // Em caso de erro de rede, permitimos seguir para não travar o usuário
+      localStorage.setItem(storageKey, "true");
+      setIsVisible(false);
+      onComplete();
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleSkip = () => {
-    localStorage.setItem(storageKey, "true");
-    setIsVisible(false);
-    onComplete();
   };
 
   if (!isVisible) return null;
@@ -85,16 +84,9 @@ export default function PreGenerationFeedback({ jobId, onComplete }: PreGenerati
             </div>
             <div>
               <h4 className="font-bold text-slate-900">Enquanto preparamos sua música...</h4>
-              <p className="text-xs text-slate-600">Conte-nos um pouco mais (opcional)</p>
+              <p className="text-xs text-slate-600">Conte-nos um pouco mais para continuarmos</p>
             </div>
           </div>
-          <button 
-            onClick={handleSkip}
-            className="text-slate-400 hover:text-slate-600 transition-colors"
-            title="Pular"
-          >
-            <X className="w-5 h-5" />
-          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -105,6 +97,7 @@ export default function PreGenerationFeedback({ jobId, onComplete }: PreGenerati
               </label>
               <input
                 type="text"
+                required
                 value={recipient}
                 onChange={(e) => setRecipient(e.target.value)}
                 placeholder="Ex: Minha mãe, namorado..."
@@ -117,6 +110,7 @@ export default function PreGenerationFeedback({ jobId, onComplete }: PreGenerati
               </label>
               <input
                 type="text"
+                required
                 value={emotion}
                 onChange={(e) => setEmotion(e.target.value)}
                 placeholder="Ex: Gratidão, amor, saudade..."
@@ -130,6 +124,7 @@ export default function PreGenerationFeedback({ jobId, onComplete }: PreGenerati
               Quanto você pagaria por uma música assim?
             </label>
             <select
+              required
               value={pricePerception}
               onChange={(e) => setPricePerception(e.target.value)}
               className="w-full p-2 text-sm rounded border border-slate-200 focus:ring-2 focus:ring-purple-500 outline-none bg-white"
@@ -143,11 +138,11 @@ export default function PreGenerationFeedback({ jobId, onComplete }: PreGenerati
             </select>
           </div>
 
-          <div className="flex gap-3 pt-2">
+          <div className="pt-2">
             <Button 
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold h-10"
+              className="w-full bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold h-10"
             >
               {isSubmitting ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -157,14 +152,6 @@ export default function PreGenerationFeedback({ jobId, onComplete }: PreGenerati
                   Enviar e continuar
                 </>
               )}
-            </Button>
-            <Button 
-              type="button"
-              variant="ghost"
-              onClick={handleSkip}
-              className="text-slate-500 text-xs hover:bg-slate-100"
-            >
-              Pular
             </Button>
           </div>
         </form>

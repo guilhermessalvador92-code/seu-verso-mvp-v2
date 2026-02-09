@@ -119,23 +119,28 @@ export async function handleSunoCallback(req: Request, res: Response) {
         await updateJobStatus(jobId, "DONE");
         console.log("[Webhook] Job marked as DONE:", jobId);
 
-        // Send to Fluxuz for WhatsApp dispatch (using the first song as primary)
+        // Send to Fluxuz for WhatsApp dispatch (sending all generated versions)
         if (lead && createdSongs.length > 0) {
-          const primarySong = createdSongs[0];
-          console.log("[Webhook] Sending primary song to Fluxuz...");
-          const fluxuzPayload = createFluxuzPayload(
-            jobId,
-            lead.name,
-            lead.whatsapp,
-            primarySong.title,
-            primarySong.audioUrl,
-            primarySong.shareSlug,
-            primarySong.lyrics,
-            primarySong.imageUrl
-          );
+          console.log(`[Webhook] Sending ${createdSongs.length} songs to Fluxuz...`);
           
-          const fluxuzSent = await sendToFluxuz(fluxuzPayload);
-          console.log("[Webhook] Fluxuz sent:", fluxuzSent);
+          for (let i = 0; i < createdSongs.length; i++) {
+            const song = createdSongs[i];
+            const versionTitle = createdSongs.length > 1 ? `${song.title} (Versão ${i + 1})` : song.title;
+            
+            const fluxuzPayload = createFluxuzPayload(
+              `${jobId}_v${i+1}`, // Unique external key per version
+              lead.name,
+              lead.whatsapp,
+              versionTitle,
+              song.audioUrl,
+              song.shareSlug,
+              song.lyrics,
+              song.imageUrl
+            );
+            
+            const fluxuzSent = await sendToFluxuz(fluxuzPayload);
+            console.log(`[Webhook] Fluxuz sent (v${i+1}):`, fluxuzSent);
+          }
         } else {
           console.warn("[Webhook] No lead found for Fluxuz integration");
         }

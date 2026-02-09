@@ -182,11 +182,7 @@ export default function Status() {
               </div>
             </CardHeader>
             <CardContent className="pt-8">
-              {isLabEnvironment() ? (
-                <PlayerLab songs={status.songs} jobId={jobId} />
-              ) : (
-                <PlayerProduction song={status.songs[0]} />
-              )}
+              <PlayerProduction songs={status.songs} jobId={jobId} />
             </CardContent>
           </Card>
         </div>
@@ -198,8 +194,8 @@ export default function Status() {
   return (
     <Layout>
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* LAB: Pre-generation feedback questionnaire */}
-        {isLabEnvironment() && jobId && (
+        {/* Pre-generation feedback questionnaire (Mandatory) */}
+        {jobId && (
           <PreGenerationFeedback jobId={jobId} onComplete={() => {}} />
         )}
 

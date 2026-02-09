@@ -25,7 +25,9 @@ import LabLayout from "@/components/lab/LabLayout";
 
 const createJobSchema = z.object({
   name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
-  whatsapp: z.string().regex(/^\d{10,15}$/, "WhatsApp deve ter 10-15 dígitos (apenas números)"),
+  ddi: z.string().min(1, "DDI é obrigatório"),
+  ddd: z.string().regex(/^\d{2}$/, "DDD deve ter 2 dígitos"),
+  phone: z.string().regex(/^\d{8,9}$/, "Telefone deve ter 8 ou 9 dígitos"),
   story: z.string().min(10, "História deve ter pelo menos 10 caracteres"),
   style: z.enum(MUSIC_STYLES as unknown as [string, ...string[]]),
   title: z.string().min(1, "Título da música é obrigatório"),
@@ -53,6 +55,7 @@ export default function Create() {
     resolver: zodResolver(createJobSchema),
     defaultValues: {
       agreedToTerms: false,
+      ddi: "55",
     },
   });
 
@@ -61,11 +64,19 @@ export default function Create() {
   const occasion = watch("occasion");
   const language = watch("language");
   const voiceGender = watch("voiceGender");
+  const ddi = watch("ddi");
   const agreedToTerms = watch("agreedToTerms");
 
   const onSubmit = async (data: CreateJobInput) => {
     try {
-      const result = await createJobMutation.mutateAsync(data);
+      // Concatenar DDI + DDD + Telefone para o campo whatsapp esperado pelo backend
+      const fullWhatsapp = `${data.ddi}${data.ddd}${data.phone}`;
+      
+      const result = await createJobMutation.mutateAsync({
+        ...data,
+        whatsapp: fullWhatsapp,
+      } as any);
+      
       toast.success("Música em criação! Você receberá uma mensagem no WhatsApp quando estiver pronta.");
       setLocation(result.statusUrl);
     } catch (error) {
@@ -113,20 +124,58 @@ export default function Create() {
                 )}
               </div>
 
-              {/* WhatsApp */}
+              {/* WhatsApp com Seletor de DDI */}
               <div className="space-y-2">
-                <Label htmlFor="whatsapp" className="font-semibold text-green-700 flex items-center gap-2">
+                <Label className="font-semibold text-green-700 flex items-center gap-2">
                   <MessageCircle className="w-4 h-4" />
                   WhatsApp *
                 </Label>
-                <Input
-                  id="whatsapp"
-                  placeholder="Ex: 5511999999999 (apenas números)"
-                  className="border-slate-300 focus:border-green-500 focus:ring-green-500"
-                  {...register("whatsapp")}
-                />
-                {errors.whatsapp && (
-                  <p className="text-sm text-red-600">{errors.whatsapp.message}</p>
+                <div className="flex gap-2">
+                  {/* DDI */}
+                  <div className="w-24">
+                    <Select value={ddi} onValueChange={(value) => setValue("ddi", value)}>
+                      <SelectTrigger className="border-slate-300 focus:border-green-500 focus:ring-green-500">
+                        <SelectValue placeholder="DDI" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="55">🇧🇷 +55</SelectItem>
+                        <SelectItem value="1">🇺🇸 +1</SelectItem>
+                        <SelectItem value="351">🇵🇹 +351</SelectItem>
+                        <SelectItem value="34">🇪🇸 +34</SelectItem>
+                        <SelectItem value="44">🇬🇧 +44</SelectItem>
+                        <SelectItem value="49">🇩🇪 +49</SelectItem>
+                        <SelectItem value="33">🇫🇷 +33</SelectItem>
+                        <SelectItem value="39">🇮🇹 +39</SelectItem>
+                        <SelectItem value="54">🇦🇷 +54</SelectItem>
+                        <SelectItem value="56">🇨🇱 +56</SelectItem>
+                        <SelectItem value="57">🇨🇴 +57</SelectItem>
+                        <SelectItem value="52">🇲🇽 +52</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {/* DDD */}
+                  <div className="w-20">
+                    <Input
+                      placeholder="DDD"
+                      maxLength={2}
+                      className="border-slate-300 focus:border-green-500 focus:ring-green-500"
+                      {...register("ddd")}
+                    />
+                  </div>
+                  {/* Telefone */}
+                  <div className="flex-1">
+                    <Input
+                      placeholder="Número do Telefone"
+                      maxLength={9}
+                      className="border-slate-300 focus:border-green-500 focus:ring-green-500"
+                      {...register("phone")}
+                    />
+                  </div>
+                </div>
+                {(errors.ddi || errors.ddd || errors.phone) && (
+                  <p className="text-sm text-red-600">
+                    {errors.ddd?.message || errors.phone?.message || "Verifique os campos do telefone"}
+                  </p>
                 )}
                 <p className="text-xs text-slate-500">Você receberá a música por WhatsApp quando estiver pronta</p>
               </div>
@@ -260,101 +309,58 @@ export default function Create() {
                 </Label>
                 <Select value={voiceGender || ""} onValueChange={(value) => setValue("voiceGender", value as any)}>
                   <SelectTrigger className="border-slate-300">
-                    <SelectValue placeholder="Selecione o gênero da voz" />
+                    <SelectValue placeholder="Selecione o gênero" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Masculina">
-                      🎤 Voz Masculina
-                    </SelectItem>
-                    <SelectItem value="Feminina">
-                      🎤 Voz Feminina
-                    </SelectItem>
+                    <SelectItem value="Masculina">👨 Masculina</SelectItem>
+                    <SelectItem value="Feminina">👩 Feminina</SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-slate-500">
-                  Escolha se prefere que a música seja cantada com voz masculina ou feminina
-                </p>
               </div>
 
               {/* Termos */}
-              <div className="space-y-2">
-                <div className="flex items-start gap-3">
-                  <Checkbox
-                    id="terms"
-                    checked={agreedToTerms || false}
-                    onCheckedChange={(checked) => setValue("agreedToTerms", checked === true)}
-                    className="mt-1"
-                  />
-                  <label htmlFor="terms" className="text-sm text-slate-700 cursor-pointer">
-                    Concordo com os{" "}
-                    <a href="/termos" target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:underline">
-                      Termos de Uso
-                    </a>
-                    {" "}e{" "}
-                    <a href="/privacidade" target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:underline">
-                      Política de Privacidade
-                    </a>
-                    {" "}*
-                  </label>
-                </div>
-                {errors.agreedToTerms && (
-                  <p className="text-sm text-red-600">{errors.agreedToTerms.message}</p>
-                )}
-              </div>
-
-              {/* Preço */}
-              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-slate-900">Valor da Música:</span>
-                  <span className="text-2xl font-bold text-purple-600">R$ 49,00</span>
+              <div className="flex items-start space-x-3 pt-4">
+                <Checkbox
+                  id="agreedToTerms"
+                  checked={agreedToTerms}
+                  onCheckedChange={(checked) => setValue("agreedToTerms", checked as boolean)}
+                  className="mt-1 border-slate-300 data-[state=checked]:bg-purple-600"
+                />
+                <div className="grid gap-1.5 leading-none">
+                  <Label
+                    htmlFor="agreedToTerms"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                  >
+                    Concordo com os termos de uso e privacidade *
+                  </Label>
+                  <p className="text-xs text-slate-500">
+                    Ao criar a música, você autoriza o processamento dos dados fornecidos.
+                  </p>
                 </div>
               </div>
+              {errors.agreedToTerms && (
+                <p className="text-sm text-red-600">{errors.agreedToTerms.message}</p>
+              )}
 
               {/* Submit */}
               <Button
                 type="submit"
                 size="lg"
-                className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold"
                 disabled={createJobMutation.isPending}
+                className="w-full bg-purple-600 hover:bg-purple-700 text-white py-8 text-xl font-bold rounded-2xl shadow-lg transition-all hover:shadow-purple-200"
               >
                 {createJobMutation.isPending ? (
                   <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Criando Música...
+                    <Loader2 className="w-6 h-6 mr-2 animate-spin" />
+                    Criando Sua Música...
                   </>
                 ) : (
-                  "Gerar Minha Música"
+                  "🎵 Criar Minha Música Agora"
                 )}
               </Button>
-
-              <p className="text-xs text-slate-500 text-center">
-                Ao clicar em "Gerar Minha Música", você será redirecionado para acompanhar o progresso
-              </p>
             </form>
           </CardContent>
         </Card>
-
-        {/* Info Cards */}
-        <div className="grid md:grid-cols-3 gap-4 mt-8">
-          <Card className="border-slate-200">
-            <CardContent className="pt-6 text-center">
-              <div className="text-3xl mb-2">⚡</div>
-              <p className="text-sm text-slate-600"><strong>Rápido</strong> - Pronta em minutos</p>
-            </CardContent>
-          </Card>
-          <Card className="border-slate-200">
-            <CardContent className="pt-6 text-center">
-              <div className="text-3xl mb-2">🎵</div>
-              <p className="text-sm text-slate-600"><strong>Qualidade</strong> - Profissional</p>
-            </CardContent>
-          </Card>
-          <Card className="border-slate-200">
-            <CardContent className="pt-6 text-center">
-              <div className="text-3xl mb-2">💬</div>
-              <p className="text-sm text-slate-600"><strong>WhatsApp</strong> - Entrega direta</p>
-            </CardContent>
-          </Card>
-        </div>
       </div>
     </Layout>
   );
